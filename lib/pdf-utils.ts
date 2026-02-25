@@ -1,12 +1,13 @@
 export interface OptimizationOptions {
   intensity: 'low' | 'medium' | 'high';
   deskew: boolean;
+  rotationAngle: number;
   grayscale: boolean;
 }
 
 export async function convertPdfToImages(
   file: File, 
-  options: OptimizationOptions = { intensity: 'medium', deskew: true, grayscale: true }
+  options: OptimizationOptions = { intensity: 'medium', deskew: true, rotationAngle: 0, grayscale: true }
 ): Promise<string[]> {
   const pdfjsLib = await import('pdfjs-dist');
   pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
@@ -39,6 +40,12 @@ export async function convertPdfToImages(
 
     canvas.height = viewport.height;
     canvas.width = viewport.width;
+
+    if (options.rotationAngle !== 0) {
+      context.translate(canvas.width / 2, canvas.height / 2);
+      context.rotate((options.rotationAngle * Math.PI) / 180);
+      context.translate(-canvas.width / 2, -canvas.height / 2);
+    }
 
     // Apply filters based on intensity
     const contrast = contrastMap[options.intensity];

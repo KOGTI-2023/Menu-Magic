@@ -46,6 +46,7 @@ export default function Home() {
   const [optimizationOptions, setOptimizationOptions] = useState<OptimizationOptions>({
     intensity: 'medium',
     deskew: true,
+    rotationAngle: 0,
     grayscale: true
   });
 
@@ -156,7 +157,7 @@ export default function Home() {
             Menü Magie
           </h1>
           <p className="text-xl text-zinc-400 max-w-2xl mx-auto font-light leading-relaxed">
-            Verwandle unleserliche PDF-Scans in futuristische, digitale Speisekarten – mit nur einem Klick.
+            Verwandle unleserliche PDF-Scans in professionelle, hochglänzende und druckfertige Speisekarten – mit nur einem Klick.
           </p>
         </motion.div>
 
@@ -233,6 +234,8 @@ export default function Home() {
                           <SelectItem value="modern">Modern Bold</SelectItem>
                           <SelectItem value="elegant">Elegant Serif</SelectItem>
                           <SelectItem value="minimalist">Minimalist</SelectItem>
+                          <SelectItem value="artdeco">Art Deco</SelectItem>
+                          <SelectItem value="abstract">Abstract</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -280,6 +283,21 @@ export default function Home() {
                     </div>
 
                     <div className="space-y-4 pt-4 border-t border-white/5">
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <Label className="text-zinc-300">Manuelle Drehung (Deskew)</Label>
+                          <span className="text-xs text-zinc-500">{optimizationOptions.rotationAngle}°</span>
+                        </div>
+                        <input 
+                          type="range" 
+                          min="-15" 
+                          max="15" 
+                          step="0.5"
+                          value={optimizationOptions.rotationAngle}
+                          onChange={(e) => setOptimizationOptions(prev => ({ ...prev, rotationAngle: parseFloat(e.target.value) }))}
+                          className="w-full accent-indigo-500"
+                        />
+                      </div>
                       <div className="flex items-center justify-between">
                         <Label className="text-zinc-300">Begradigen</Label>
                         <div 
@@ -430,6 +448,8 @@ export default function Home() {
                         <SelectItem value="classic">Classic</SelectItem>
                         <SelectItem value="rustic">Rustic</SelectItem>
                         <SelectItem value="vintage">Vintage</SelectItem>
+                        <SelectItem value="artdeco">Art Deco</SelectItem>
+                        <SelectItem value="abstract">Abstract</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
