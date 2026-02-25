@@ -16,6 +16,7 @@ export default function Home() {
   const [file, setFile] = useState<File | null>(null);
   const [model, setModel] = useState<string>("gemini-2.5-flash-lite");
   const [theme, setTheme] = useState<MenuTheme>("classic");
+  const [containerStyle, setContainerStyle] = useState<string>("bg-white shadow-sm");
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
   const [status, setStatus] = useState("");
@@ -48,17 +49,34 @@ export default function Home() {
 
     try {
       // 1. Convert PDF to Images
-      const images = await convertPdfToImages(file);
+      let images: string[];
+      try {
+        images = await convertPdfToImages(file);
+        if (!images || images.length === 0) {
+          throw new Error("No images could be extracted from the PDF.");
+        }
+      } catch (err: any) {
+        throw new Error(`PDF Conversion Failed: ${err.message || "Could not read the PDF file. Please ensure it is a valid PDF."}`);
+      }
+
       setProgress(40);
       setStatus(`Converted PDF to ${images.length} image(s). Analyzing with Gemini...`);
 
       // 2. Call Gemini API
       const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
       if (!apiKey) {
-        throw new Error("Gemini API Key is missing.");
+        throw new Error("Gemini API Key is missing. Please configure it in the environment variables.");
       }
 
-      const data = await extractMenuData(images, model, apiKey);
+      let data: MenuData;
+      try {
+        data = await extractMenuData(images, model, apiKey);
+        if (!data || !data.categories || !Array.isArray(data.categories)) {
+          throw new Error("Invalid response format from Gemini API. Expected a structured menu data object containing categories.");
+        }
+      } catch (err: any) {
+        throw new Error(`AI Analysis Failed: ${err.message || "Failed to extract menu data from the images. Please try again or use a different model."}`);
+      }
       
       setProgress(90);
       setStatus("Generating layout...");
@@ -68,7 +86,7 @@ export default function Home() {
       setStatus("Done!");
     } catch (err: any) {
       console.error(err);
-      setError(err.message || "An error occurred during processing.");
+      setError(err.message || "An unexpected error occurred during processing.");
     } finally {
       setIsProcessing(false);
     }
@@ -157,6 +175,9 @@ export default function Home() {
                     <SelectItem value="modern">Modern Bold</SelectItem>
                     <SelectItem value="minimalist">Minimalist Mono</SelectItem>
                     <SelectItem value="rustic">Rustic Charm</SelectItem>
+                    <SelectItem value="elegant">Elegant Serif</SelectItem>
+                    <SelectItem value="vintage">Vintage Diner</SelectItem>
+                    <SelectItem value="dark">Midnight Gold</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -209,6 +230,22 @@ export default function Home() {
                     <SelectItem value="modern">Modern Bold</SelectItem>
                     <SelectItem value="minimalist">Minimalist Mono</SelectItem>
                     <SelectItem value="rustic">Rustic Charm</SelectItem>
+                    <SelectItem value="elegant">Elegant Serif</SelectItem>
+                    <SelectItem value="vintage">Vintage Diner</SelectItem>
+                    <SelectItem value="dark">Midnight Gold</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-center gap-2">
+                <Select value={containerStyle} onValueChange={setContainerStyle}>
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Container Style" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="bg-white shadow-sm">White Shadow</SelectItem>
+                    <SelectItem value="bg-stone-100 border-2 border-dashed border-stone-300">Dashed Border</SelectItem>
+                    <SelectItem value="bg-stone-900 text-stone-100 rounded-xl overflow-hidden">Dark Mode</SelectItem>
+                    <SelectItem value="bg-transparent">Transparent</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -227,7 +264,7 @@ export default function Home() {
           </div>
 
           <div className="bg-stone-200/50 p-4 md:p-8 rounded-2xl overflow-x-auto">
-            <MenuPreview data={menuData} theme={theme} />
+            <MenuPreview data={menuData} theme={theme} className={containerStyle} />
           </div>
         </div>
       )}
