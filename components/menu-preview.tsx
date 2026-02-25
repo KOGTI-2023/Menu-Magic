@@ -56,9 +56,7 @@ export function MenuPreview({ data, theme, className }: MenuPreviewProps) {
                                   {p.value}
                                 </span>
                               ))
-                            ) : (
-                              <span className="text-xl font-semibold whitespace-nowrap">{item.price}</span>
-                            )}
+                            ) : null}
                           </div>
                         </div>
                         {item.description && (
@@ -106,11 +104,7 @@ export function MenuPreview({ data, theme, className }: MenuPreviewProps) {
                                   {p.value}
                                 </span>
                               ))
-                            ) : (
-                              <span className="font-mono font-semibold bg-stone-100 px-2 py-1 rounded text-sm whitespace-nowrap">
-                                {item.price}
-                              </span>
-                            )}
+                            ) : null}
                           </div>
                         </div>
                         {item.description && (
@@ -176,9 +170,7 @@ export function MenuPreview({ data, theme, className }: MenuPreviewProps) {
                                   {p.value}
                                 </span>
                               ))
-                            ) : (
-                              <span className="text-sm text-stone-400 whitespace-nowrap">{item.price}</span>
-                            )}
+                            ) : null}
                           </div>
                         </div>
                         {item.description && (
@@ -235,9 +227,7 @@ export function MenuPreview({ data, theme, className }: MenuPreviewProps) {
                                 {p.value}
                               </span>
                             ))
-                          ) : (
-                            <span className="font-bold text-[#8b5a2b] whitespace-nowrap">{item.price}</span>
-                          )}
+                          ) : null}
                         </div>
                       </div>
                     ))}
@@ -279,9 +269,7 @@ export function MenuPreview({ data, theme, className }: MenuPreviewProps) {
                                   {p.value}
                                 </span>
                               ))
-                            ) : (
-                              <span className="text-lg whitespace-nowrap">{item.price}</span>
-                            )}
+                            ) : null}
                           </div>
                         </div>
                         {item.description && (
@@ -337,9 +325,7 @@ export function MenuPreview({ data, theme, className }: MenuPreviewProps) {
                                   {p.value}
                                 </span>
                               ))
-                            ) : (
-                              <span className="font-bold text-[#cb4b16] whitespace-nowrap">{item.price}</span>
-                            )}
+                            ) : null}
                           </div>
                         </div>
                         {item.description && (
@@ -396,11 +382,7 @@ export function MenuPreview({ data, theme, className }: MenuPreviewProps) {
                                   {p.value}
                                 </span>
                               ))
-                            ) : (
-                              <span className="font-mono text-amber-500 font-bold whitespace-nowrap">
-                                {item.price}
-                              </span>
-                            )}
+                            ) : null}
                           </div>
                         </div>
                         {item.description && (
@@ -463,9 +445,7 @@ export function MenuPreview({ data, theme, className }: MenuPreviewProps) {
                                   {p.value}
                                 </span>
                               ))
-                            ) : (
-                              <span className="text-xl font-semibold whitespace-nowrap">{item.price}</span>
-                            )}
+                            ) : null}
                           </div>
                         </div>
                         {item.description && (
@@ -525,11 +505,7 @@ export function MenuPreview({ data, theme, className }: MenuPreviewProps) {
                                     {p.value}
                                   </span>
                                 ))
-                              ) : (
-                                <span className="text-lg font-black text-blue-600 bg-blue-50 px-3 py-1 rounded-full whitespace-nowrap">
-                                  {item.price}
-                                </span>
-                              )}
+                              ) : null}
                             </div>
                           </div>
                           {item.description && (
@@ -588,9 +564,7 @@ export function MenuPreview({ data, theme, className }: MenuPreviewProps) {
                                   {p.value}
                                 </span>
                               ))
-                            ) : (
-                              <span className="text-lg font-bold text-slate-700 whitespace-nowrap">{item.price}</span>
-                            )}
+                            ) : null}
                           </div>
                         </div>
                         {item.description && (
@@ -613,6 +587,79 @@ export function MenuPreview({ data, theme, className }: MenuPreviewProps) {
                 </div>
               ))}
             </div>
+          </div>
+        );
+      case "premium":
+        return (
+          <div className="font-serif bg-gradient-to-br from-slate-50 to-slate-100 text-slate-900 p-16 max-w-4xl mx-auto shadow-[0_20px_50px_rgba(8,_112,_184,_0.07)] border border-slate-200/60 rounded-xl relative overflow-hidden backdrop-blur-sm">
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-amber-200 via-amber-400 to-amber-200 opacity-80"></div>
+            <div className="absolute top-0 right-0 w-64 h-64 bg-amber-100/40 rounded-full mix-blend-multiply filter blur-3xl opacity-50 -translate-y-1/2 translate-x-1/2"></div>
+            <div className="text-center mb-20 relative z-10">
+              <h1 className="text-5xl font-bold tracking-widest uppercase mb-4 text-slate-800 drop-shadow-sm">
+                {data.restaurantName || "Speisekarte"}
+              </h1>
+              {data.subtitle && (
+                <p className="text-sm uppercase tracking-[0.3em] text-amber-700/80 font-medium">{data.subtitle}</p>
+              )}
+              <div className="mt-8 flex justify-center items-center space-x-4 opacity-70">
+                <div className="h-px w-16 bg-gradient-to-r from-transparent to-amber-600/50"></div>
+                <div className="w-2 h-2 rotate-45 bg-amber-600/50"></div>
+                <div className="h-px w-16 bg-gradient-to-l from-transparent to-amber-600/50"></div>
+              </div>
+            </div>
+
+            <div className="space-y-20 relative z-10">
+              {data.categories.map((category, idx) => (
+                <div key={idx} className="relative">
+                  <h2 className="text-3xl font-semibold text-center mb-12 text-slate-800 tracking-wide">
+                    {category.category}
+                  </h2>
+                  <div className="grid gap-10">
+                    {category.items.map((item, itemIdx) => (
+                      <div key={itemIdx} className="flex flex-col group">
+                        <div className="flex justify-between items-baseline mb-2">
+                          <div className="flex items-baseline">
+                            {item.number && (
+                              <span className="font-medium text-amber-700/80 mr-4 w-8 text-right font-sans text-sm">{item.number}</span>
+                            )}
+                            <h3 className="text-xl font-medium text-slate-800 group-hover:text-amber-700 transition-colors duration-300">
+                              {item.name}
+                              {(item.additives || item.allergens) && (
+                                <sup className="ml-1 text-[10px] font-normal text-slate-500">
+                                  ({[...(item.additives || []), ...(item.allergens || [])].join(",")})
+                                </sup>
+                              )}
+                            </h3>
+                          </div>
+                          <div className="flex-grow border-b border-dotted border-slate-300 mx-6 opacity-60 group-hover:border-amber-300 transition-colors duration-300"></div>
+                          <div className="flex flex-col items-end">
+                            {item.prices && item.prices.length > 0 ? (
+                              item.prices.map((p, i) => (
+                                <span key={i} className="text-xl font-medium text-slate-800 whitespace-nowrap">
+                                  {p.label && <span className="text-sm font-normal italic text-slate-500 mr-3">{p.label}</span>}
+                                  {p.value}
+                                </span>
+                              ))
+                            ) : null}
+                          </div>
+                        </div>
+                        {item.description && (
+                          <p className="text-sm italic text-slate-600/90 ml-12 max-w-2xl leading-relaxed">
+                            {item.description}
+                          </p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+            {data.footer && (
+              <div className="mt-24 pt-8 border-t border-slate-200 text-xs text-slate-500 space-y-2 font-sans relative z-10">
+                {data.footer.additives && <p><strong className="font-medium text-slate-700">Zusatzstoffe:</strong> {data.footer.additives}</p>}
+                {data.footer.allergens && <p><strong className="font-medium text-slate-700">Allergene:</strong> {data.footer.allergens}</p>}
+              </div>
+            )}
           </div>
         );
       case "orchidee":
@@ -660,9 +707,7 @@ export function MenuPreview({ data, theme, className }: MenuPreviewProps) {
                                   {p.value}
                                 </span>
                               ))
-                            ) : (
-                              <span className="text-lg font-bold whitespace-nowrap">{item.price}</span>
-                            )}
+                            ) : null}
                           </div>
                         </div>
                         {item.description && (

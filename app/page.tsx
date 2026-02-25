@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect, useRef } from "react";
 import { useDropzone } from "react-dropzone";
 import { 
   UploadCloud, 
@@ -35,7 +35,8 @@ export default function Home() {
   const [step, setStep] = useState<Step>("UPLOAD");
   const [file, setFile] = useState<File | null>(null);
   const [model, setModel] = useState<string>("gemini-2.5-flash-lite");
-  const [theme, setTheme] = useState<MenuTheme>("dark");
+  const [detailLevel, setDetailLevel] = useState<string>("premium");
+  const [theme, setTheme] = useState<MenuTheme>("premium");
   const [containerStyle, setContainerStyle] = useState<string>("bg-zinc-900/40 backdrop-blur-xl border border-white/10 shadow-2xl rounded-3xl");
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -66,13 +67,6 @@ export default function Home() {
     disabled: step !== "UPLOAD"
   });
 
-  // Re-run optimization when options change
-  useEffect(() => {
-    if (file && step === "OPTIMIZE") {
-      handleOptimize();
-    }
-  }, [optimizationOptions, file, step]);
-
   const handleOptimize = useCallback(async () => {
     if (!file) return;
     setIsProcessing(true);
@@ -85,6 +79,23 @@ export default function Home() {
       setIsProcessing(false);
     }
   }, [file, optimizationOptions]);
+
+  // Re-run optimization when options change
+  const prevOptionsRef = useRef(optimizationOptions);
+  const prevFileRef = useRef(file);
+
+  useEffect(() => {
+    if (file && step === "OPTIMIZE") {
+      const optionsChanged = prevOptionsRef.current !== optimizationOptions;
+      const fileChanged = prevFileRef.current !== file;
+      
+      if (optionsChanged || fileChanged || optimizedImages.length === 0) {
+        handleOptimize();
+        prevOptionsRef.current = optimizationOptions;
+        prevFileRef.current = file;
+      }
+    }
+  }, [optimizationOptions, file, step, handleOptimize, optimizedImages.length]);
 
   const handleProcess = async () => {
     if (optimizedImages.length === 0) return;
@@ -101,18 +112,34 @@ export default function Home() {
         throw new Error("Gemini API-Schlüssel fehlt. Bitte in den Umgebungsvariablen konfigurieren.");
       }
 
-      const data = await extractMenuData(optimizedImages, model, apiKey);
+      console.log(`Starting process with ${optimizedImages.length} images, model: ${model}, detailLevel: ${detailLevel}`);
+      const data = await extractMenuData(optimizedImages, model, apiKey, detailLevel);
       
-      if (!data || !data.categories || !Array.isArray(data.categories)) {
-        throw new Error("Ungültiges Antwortformat von der Gemini API.");
+      if (!data) {
+        throw new Error("Keine Daten von der Gemini API erhalten.");
+      }
+      
+      if (!data.categories) {
+        console.error("Missing categories in data:", data);
+        throw new Error("Das Modell hat keine Kategorien (categories) zurückgegeben. Bitte versuche es erneut.");
+      }
+      
+      if (!Array.isArray(data.categories)) {
+        console.error("Categories is not an array:", data.categories);
+        throw new Error("Das Modell hat die Kategorien nicht im erwarteten Format (Array) zurückgegeben.");
       }
       
       setProgress(100);
       setMenuData(data);
       setStep("RESULT");
     } catch (err: any) {
-      console.error(err);
-      setError(err.message || "Ein unerwarteter Fehler ist aufgetreten.");
+      console.error("Error in handleProcess:", err);
+      // Extrahiere die eigentliche Fehlermeldung, falls sie in einem Error-Objekt verschachtelt ist
+      const errorMessage = err instanceof Error ? err.message : 
+                           (typeof err === 'object' && err !== null && 'message' in err) ? String(err.message) : 
+                           String(err);
+      
+      setError(`Fehler bei der Verarbeitung: ${errorMessage}`);
       setStep("OPTIMIZE");
     } finally {
       setIsProcessing(false);
@@ -120,17 +147,31 @@ export default function Home() {
   };
 
   const handleDownloadPdf = async () => {
-    const element = document.getElementById("menu-preview-container");
-    if (!element) return;
-    const html2pdf = (await import("html2pdf.js")).default;
-    const opt = {
-      margin: 10,
-      filename: 'speisekarte.pdf',
-      image: { type: 'jpeg' as const, quality: 0.98 },
-      html2canvas: { scale: 2, useCORS: true },
-      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' as const }
-    };
-    html2pdf().set(opt).from(element).save();
+    try {
+      const element = document.getElementById("menu-preview-container");
+      if (!element) {
+        throw new Error("Vorschau-Container nicht gefunden.");
+      }
+      
+      setStatus("PDF wird generiert...");
+      setIsProcessing(true);
+      
+      const html2pdf = (await import("html2pdf.js")).default;
+      const opt = {
+        margin: 10,
+        filename: 'speisekarte.pdf',
+        image: { type: 'jpeg' as const, quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' as const }
+      };
+      await html2pdf().set(opt).from(element).save();
+    } catch (err: any) {
+      console.error("Error generating PDF:", err);
+      setError(`Fehler beim Erstellen der PDF: ${err.message || String(err)}`);
+    } finally {
+      setIsProcessing(false);
+      setStatus("");
+    }
   };
 
   return (
@@ -209,7 +250,7 @@ export default function Home() {
                     <p className="text-zinc-600 text-sm mt-2">Maximal 1 Datei (PDF)</p>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="space-y-2">
                       <Label className="text-zinc-400">KI-Modell</Label>
                       <Select value={model} onValueChange={setModel}>
@@ -224,12 +265,27 @@ export default function Home() {
                       </Select>
                     </div>
                     <div className="space-y-2">
+                      <Label className="text-zinc-400">Detailstufe</Label>
+                      <Select value={detailLevel} onValueChange={setDetailLevel}>
+                        <SelectTrigger className="bg-black/40 border-white/5 text-zinc-300">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="bg-zinc-900 border-white/10 text-zinc-300">
+                          <SelectItem value="standard">Standard (Originalgetreu)</SelectItem>
+                          <SelectItem value="high">Hoch (Appetitanregend)</SelectItem>
+                          <SelectItem value="premium">Premium (Hochglanz)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
                       <Label className="text-zinc-400">Standard-Stil</Label>
                       <Select value={theme} onValueChange={(v) => setTheme(v as MenuTheme)}>
                         <SelectTrigger className="bg-black/40 border-white/5 text-zinc-300">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent className="bg-zinc-900 border-white/10 text-zinc-300">
+                          <SelectItem value="premium">Premium Glossy</SelectItem>
+                          <SelectItem value="orchidee">Orchidee</SelectItem>
                           <SelectItem value="dark">Midnight Gold</SelectItem>
                           <SelectItem value="modern">Modern Bold</SelectItem>
                           <SelectItem value="elegant">Elegant Serif</SelectItem>
@@ -319,9 +375,22 @@ export default function Home() {
                     </div>
 
                     <div className="pt-6 space-y-3">
-                      <Button className="w-full bg-indigo-600 hover:bg-indigo-500 h-12 text-lg font-bold shadow-[0_0_20px_rgba(99,102,241,0.3)]" onClick={handleProcess}>
-                        Bestätigen & Analysieren
-                        <ChevronRight className="ml-2 h-5 w-5" />
+                      <Button 
+                        className="w-full bg-indigo-600 hover:bg-indigo-500 h-12 text-lg font-bold shadow-[0_0_20px_rgba(99,102,241,0.3)] disabled:opacity-50 disabled:cursor-not-allowed" 
+                        onClick={handleProcess}
+                        disabled={isProcessing || optimizedImages.length === 0}
+                      >
+                        {isProcessing ? (
+                          <>
+                            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                            Verarbeite...
+                          </>
+                        ) : (
+                          <>
+                            Bestätigen & Analysieren
+                            <ChevronRight className="ml-2 h-5 w-5" />
+                          </>
+                        )}
                       </Button>
                       <Button variant="ghost" className="w-full text-zinc-500 hover:text-zinc-300" onClick={() => setStep("UPLOAD")}>
                         <ChevronLeft className="mr-2 h-4 w-4" />
@@ -441,6 +510,8 @@ export default function Home() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent className="bg-zinc-900 border-white/10 text-zinc-300">
+                        <SelectItem value="premium">Premium Glossy</SelectItem>
+                        <SelectItem value="orchidee">Orchidee</SelectItem>
                         <SelectItem value="dark">Midnight Gold</SelectItem>
                         <SelectItem value="modern">Modern Bold</SelectItem>
                         <SelectItem value="elegant">Elegant Serif</SelectItem>
@@ -450,6 +521,7 @@ export default function Home() {
                         <SelectItem value="vintage">Vintage</SelectItem>
                         <SelectItem value="artdeco">Art Deco</SelectItem>
                         <SelectItem value="abstract">Abstract</SelectItem>
+                        <SelectItem value="handdrawn">Handdrawn</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -496,9 +568,16 @@ export default function Home() {
           <motion.div 
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="max-w-2xl mx-auto p-4 bg-red-500/10 border border-red-500/20 text-red-400 rounded-2xl text-center font-medium backdrop-blur-md"
+            className="max-w-2xl mx-auto p-4 bg-red-500/10 border border-red-500/20 text-red-400 rounded-2xl text-center font-medium backdrop-blur-md flex justify-between items-center"
           >
-            {error}
+            <span className="flex-1">{error}</span>
+            <button 
+              onClick={() => setError(null)}
+              className="ml-4 p-1 rounded-full hover:bg-red-500/20 transition-colors"
+              aria-label="Fehler ausblenden"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
           </motion.div>
         )}
       </main>

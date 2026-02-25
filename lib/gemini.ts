@@ -12,6 +12,7 @@ export interface MenuItem {
   prices: MenuPrice[];
   additives?: string[];
   allergens?: string[];
+  dietary?: string[];
 }
 
 export interface MenuCategory {
@@ -141,14 +142,19 @@ export async function extractMenuData(
   }
 
   try {
+    console.log(`Starting Gemini API request with model: ${modelName}, detailLevel: ${detailLevel}`);
+    console.log(`Sending ${parts.length} images to the API.`);
+    
     const response: GenerateContentResponse = await ai.models.generateContent({
       model: modelName,
       contents: { parts: [...parts, prompt] },
       config
     });
 
+    console.log("Received response from Gemini API.");
     let text = response.text;
     if (!text) {
+      console.error("Empty response text from Gemini API. Full response object:", JSON.stringify(response, null, 2));
       throw new Error("Leere Antwort von der API erhalten.");
     }
 
@@ -156,13 +162,19 @@ export async function extractMenuData(
     text = text.replace(/^```json\n?/g, '').replace(/```\n?$/g, '').trim();
 
     try {
-      return JSON.parse(text) as MenuData;
+      const parsedData = JSON.parse(text) as MenuData;
+      console.log("Successfully parsed JSON response.");
+      return parsedData;
     } catch (parseError) {
-      console.error("JSON Parse Error:", parseError, "Raw Text:", text);
+      console.error("JSON Parse Error:", parseError);
+      console.error("Raw Text that failed to parse:", text);
       throw new Error("Fehler beim Verarbeiten der API-Antwort (ungültiges JSON). Das Modell hat unerwartete Daten zurückgegeben.");
     }
   } catch (error: any) {
-    console.error("Gemini API Error:", error);
+    console.error("Gemini API Error Details:", error);
+    if (error.status) console.error("Status Code:", error.status);
+    if (error.response) console.error("Response Body:", error.response);
+    
     const msg = error.message || String(error);
     
     if (msg.includes("429") || msg.includes("quota") || msg.includes("rate limit")) {
@@ -170,7 +182,11 @@ export async function extractMenuData(
     } else if (msg.includes("API key not valid") || msg.includes("403") || msg.includes("permission denied")) {
       throw new Error("Ungültiger API-Schlüssel oder fehlende Berechtigungen. Bitte überprüfe deine Konfiguration.");
     } else if (msg.includes("400") || msg.includes("bad request") || msg.includes("payload too large")) {
-      throw new Error("Ungültige Anfrage an die API. Möglicherweise ist das PDF zu groß (zu viele Seiten). Versuche eine Datei mit weniger Seiten.");
+      throw new Error(`Ungültige Anfrage an die API (400 Bad Request). Möglicherweise ist das PDF zu groß oder das Format wird nicht unterstützt. Details: ${msg}`);
+    } else if (msg.includes("500") || msg.includes("internal server error")) {
+      throw new Error(`Interner Serverfehler bei Google Gemini (500). Bitte versuche es später erneut. Details: ${msg}`);
+    } else if (msg.includes("503") || msg.includes("service unavailable")) {
+      throw new Error(`Der Google Gemini Service ist derzeit nicht erreichbar (503). Bitte versuche es später erneut. Details: ${msg}`);
     } else {
       throw new Error(`Gemini API Fehler: ${msg}`);
     }
