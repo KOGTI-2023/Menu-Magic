@@ -20,11 +20,11 @@ export function MenuPreview({ data, theme, className }: MenuPreviewProps) {
           <div className="font-serif bg-[#fdfbf7] text-[#2c2c2c] p-12 max-w-4xl mx-auto shadow-xl border border-[#e5e0d8]">
             <div className="text-center mb-16 border-b-2 border-[#2c2c2c] pb-8">
               <h1 className="text-5xl font-bold tracking-widest uppercase mb-4">
-                {data.restaurantName || "Menu"}
+                {data.restaurantName || "Speisekarte"}
               </h1>
               <div className="flex justify-center items-center space-x-4">
                 <div className="h-px w-16 bg-[#2c2c2c]"></div>
-                <span className="text-sm uppercase tracking-[0.2em]">Est. 2026</span>
+                <span className="text-sm uppercase tracking-[0.2em]">Seit 2026</span>
                 <div className="h-px w-16 bg-[#2c2c2c]"></div>
               </div>
             </div>
@@ -69,7 +69,7 @@ export function MenuPreview({ data, theme, className }: MenuPreviewProps) {
           <div className="font-sans bg-white text-stone-900 p-12 max-w-4xl mx-auto shadow-2xl rounded-3xl">
             <div className="mb-16">
               <h1 className="text-6xl font-black tracking-tighter mb-2 text-indigo-600">
-                {data.restaurantName || "MENU"}
+                {data.restaurantName || "SPEISEKARTE"}
               </h1>
               <div className="h-2 w-24 bg-indigo-600 rounded-full"></div>
             </div>
@@ -119,7 +119,7 @@ export function MenuPreview({ data, theme, className }: MenuPreviewProps) {
           <div className="font-mono bg-stone-950 text-stone-50 p-12 max-w-4xl mx-auto shadow-2xl">
             <div className="mb-20">
               <h1 className="text-4xl font-light tracking-[0.3em] uppercase">
-                {data.restaurantName || "Menu"}
+                {data.restaurantName || "Speisekarte"}
               </h1>
             </div>
 
@@ -167,9 +167,9 @@ export function MenuPreview({ data, theme, className }: MenuPreviewProps) {
           <div className="font-serif bg-[#f4ece1] text-[#4a3b32] p-12 max-w-4xl mx-auto shadow-lg border-8 border-double border-[#d4c4b7]">
             <div className="text-center mb-12">
               <h1 className="text-6xl font-bold mb-4 text-[#8b5a2b]">
-                {data.restaurantName || "The Menu"}
+                {data.restaurantName || "Die Speisekarte"}
               </h1>
-              <p className="italic text-[#6b503b]">Fresh & Local</p>
+              <p className="italic text-[#6b503b]">Frisch & Lokal</p>
             </div>
 
             <div className="space-y-12">
@@ -208,7 +208,7 @@ export function MenuPreview({ data, theme, className }: MenuPreviewProps) {
           <div className="font-serif bg-white text-stone-800 p-16 max-w-4xl mx-auto shadow-2xl border border-stone-100">
             <div className="text-center mb-20">
               <h1 className="text-5xl font-light tracking-[0.15em] uppercase mb-6 text-stone-900">
-                {data.restaurantName || "Menu"}
+                {data.restaurantName || "Speisekarte"}
               </h1>
               <div className="w-24 h-px bg-stone-300 mx-auto"></div>
             </div>
@@ -253,9 +253,9 @@ export function MenuPreview({ data, theme, className }: MenuPreviewProps) {
           <div className="font-serif bg-[#fdf6e3] text-[#586e75] p-12 max-w-4xl mx-auto shadow-xl border-4 border-[#eee8d5] rounded-sm">
             <div className="text-center mb-16 border-b-2 border-[#eee8d5] pb-10">
               <h1 className="text-6xl font-black tracking-tight uppercase mb-4 text-[#073642]" style={{ fontFamily: 'Impact, sans-serif' }}>
-                {data.restaurantName || "MENU"}
+                {data.restaurantName || "KARTE"}
               </h1>
-              <p className="text-sm uppercase tracking-[0.3em] font-bold text-[#cb4b16]">Quality Provisions</p>
+              <p className="text-sm uppercase tracking-[0.3em] font-bold text-[#cb4b16]">Beste Qualität</p>
             </div>
 
             <div className="grid md:grid-cols-2 gap-12">
@@ -301,7 +301,7 @@ export function MenuPreview({ data, theme, className }: MenuPreviewProps) {
           <div className="font-sans bg-zinc-950 text-zinc-100 p-12 max-w-4xl mx-auto shadow-2xl border border-zinc-800 rounded-lg">
             <div className="text-center mb-16">
               <h1 className="text-5xl font-bold tracking-tighter text-white mb-4">
-                {data.restaurantName || "Menu"}
+                {data.restaurantName || "Speisekarte"}
               </h1>
               <div className="h-1 w-20 bg-amber-500 mx-auto rounded-full"></div>
             </div>
