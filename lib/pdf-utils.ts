@@ -10,10 +10,10 @@ export async function convertPdfToImages(
   options: OptimizationOptions = { intensity: 'medium', deskew: true, rotationAngle: 0, grayscale: true }
 ): Promise<string[]> {
   try {
-    const pdfjsLib = await import('pdfjs-dist/legacy/build/pdf.mjs');
+    const pdfjsLib = await import('pdfjs-dist/legacy/build/pdf.js');
     
-    if (pdfjsLib.GlobalWorkerOptions) {
-      pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
+    if (typeof window !== 'undefined' && !pdfjsLib.GlobalWorkerOptions.workerSrc) {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
     }
 
     const arrayBuffer = await file.arrayBuffer();

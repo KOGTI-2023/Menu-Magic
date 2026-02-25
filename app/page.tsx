@@ -387,7 +387,7 @@ export default function Home() {
                           </>
                         ) : (
                           <>
-                            Bestätigen & Analysieren
+                            Bestätigen & Optimieren
                             <ChevronRight className="ml-2 h-5 w-5" />
                           </>
                         )}
@@ -406,14 +406,14 @@ export default function Home() {
                     <h3 className="text-lg font-medium text-zinc-400">Vorschau der Optimierung</h3>
                     <span className="text-xs text-zinc-600 uppercase tracking-widest">Live Rendering</span>
                   </div>
-                  <div className="aspect-[3/4] bg-zinc-900/60 rounded-3xl border border-white/5 overflow-hidden relative group">
+                  <div className="h-[600px] bg-zinc-900/60 rounded-3xl border border-white/5 overflow-hidden relative group flex flex-col">
                     {isProcessing ? (
                       <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 backdrop-blur-sm z-20">
                         <Loader2 className="h-12 w-12 text-indigo-500 animate-spin mb-4" />
-                        <p className="text-indigo-300 font-medium animate-pulse">Optimiere Bilder...</p>
+                        <p className="text-indigo-300 font-medium animate-pulse">Lade & bereite Vorschau vor...</p>
                       </div>
                     ) : optimizedImages.length > 0 ? (
-                      <div className="h-full overflow-y-auto p-8 space-y-8 scrollbar-hide">
+                      <div className="flex-1 overflow-y-auto p-8 space-y-8 scrollbar-hide">
                         {optimizedImages.map((img, i) => (
                           <motion.img 
                             key={i}
@@ -426,7 +426,7 @@ export default function Home() {
                         ))}
                       </div>
                     ) : (
-                      <div className="h-full flex items-center justify-center text-zinc-700 italic">
+                      <div className="flex-1 flex items-center justify-center text-zinc-700 italic">
                         Keine Vorschau verfügbar
                       </div>
                     )}
