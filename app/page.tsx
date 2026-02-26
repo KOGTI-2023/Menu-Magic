@@ -62,6 +62,7 @@ export default function Home() {
   const [isAiProcessing, setIsAiProcessing] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [sliderPosition, setSliderPosition] = useState(50);
+  const [isEditable, setIsEditable] = useState(false);
 
   const startListening = () => {
     if (!('webkitSpeechRecognition' in window)) {
@@ -207,6 +208,13 @@ export default function Home() {
       setStatus("PDF wird generiert...");
       setIsProcessing(true);
       
+      // Disable editing mode for export
+      const wasEditable = isEditable;
+      setIsEditable(false);
+      
+      // Wait for re-render
+      await new Promise(resolve => setTimeout(resolve, 100));
+
       const html2pdf = (await import("html2pdf.js")).default;
       const opt = {
         margin: 10,
@@ -216,6 +224,8 @@ export default function Home() {
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' as const }
       };
       await html2pdf().set(opt).from(element).save();
+      
+      if (wasEditable) setIsEditable(true);
     } catch (err: any) {
       console.error("Error generating PDF:", err);
       setError(`Fehler beim Erstellen der PDF: ${err.message || String(err)}`);
@@ -599,6 +609,17 @@ export default function Home() {
                     variant="outline" 
                     className={cn(
                       "border-white/10 bg-white/5 text-zinc-300 hover:bg-white/10",
+                      isEditable && "bg-amber-500/20 border-amber-500/50 text-amber-300"
+                    )}
+                    onClick={() => setIsEditable(!isEditable)}
+                  >
+                    <Settings2 className="mr-2 h-4 w-4" />
+                    {isEditable ? "Bearbeiten beenden" : "Direkt bearbeiten"}
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    className={cn(
+                      "border-white/10 bg-white/5 text-zinc-300 hover:bg-white/10",
                       showComparison && "bg-indigo-500/20 border-indigo-500/50 text-indigo-300"
                     )}
                     onClick={() => setShowComparison(!showComparison)}
@@ -616,6 +637,41 @@ export default function Home() {
                   </Button>
                 </div>
               </div>
+
+              {/* Suggested Palettes */}
+              {menuData.suggestedPalettes && menuData.suggestedPalettes.length > 0 && (
+                <div className="p-6 bg-zinc-900/40 backdrop-blur-xl border border-white/10 rounded-3xl shadow-2xl space-y-4">
+                  <div className="flex items-center gap-3 mb-2">
+                    <Palette className="h-5 w-5 text-emerald-400" />
+                    <h3 className="text-lg font-medium text-zinc-300">Vorgeschlagene Farbpaletten</h3>
+                  </div>
+                  <div className="flex flex-wrap gap-4">
+                    {menuData.suggestedPalettes.map((palette, i) => (
+                      <button
+                        key={i}
+                        onClick={() => {
+                          setMenuData({ ...menuData, originalStyle: palette });
+                          setTheme("original");
+                        }}
+                        className="group relative flex items-center gap-2 p-2 rounded-xl border border-white/5 hover:border-white/20 transition-all bg-black/20"
+                      >
+                        <div className="flex -space-x-2">
+                          <div className="w-6 h-6 rounded-full border border-white/10" style={{ backgroundColor: palette.primaryColor }} />
+                          <div className="w-6 h-6 rounded-full border border-white/10" style={{ backgroundColor: palette.backgroundColor }} />
+                          <div className="w-6 h-6 rounded-full border border-white/10" style={{ backgroundColor: palette.textColor }} />
+                        </div>
+                        <span className="text-xs text-zinc-400 group-hover:text-zinc-200">Palette {i + 1}</span>
+                      </button>
+                    ))}
+                    <button
+                      onClick={() => setTheme("original")}
+                      className="text-xs text-zinc-500 hover:text-zinc-300 underline"
+                    >
+                      Original wiederherstellen
+                    </button>
+                  </div>
+                </div>
+              )}
 
               {/* AI Assistant */}
               <div className="p-6 bg-zinc-900/40 backdrop-blur-xl border border-white/10 rounded-3xl shadow-2xl space-y-4">
@@ -667,9 +723,15 @@ export default function Home() {
                     <div className="relative h-[800px] w-full select-none overflow-hidden">
                       {/* Original (Before) */}
                       <div className="absolute inset-0">
-                        <div className="h-full w-full overflow-y-auto p-8 bg-zinc-800">
+                        <div className="h-full w-full overflow-y-auto p-8 bg-zinc-800 scrollbar-hide">
                           {optimizedImages.map((img, i) => (
-                            <img key={i} src={`data:image/jpeg;base64,${img}`} className="w-full mb-8 rounded-lg shadow-xl" alt="Original" />
+                            <img 
+                              key={i} 
+                              src={`data:image/jpeg;base64,${img}`} 
+                              className="w-full mb-8 rounded-lg shadow-xl" 
+                              alt={`Original Page ${i + 1}`} 
+                              loading="lazy"
+                            />
                           ))}
                         </div>
                       </div>
@@ -679,8 +741,14 @@ export default function Home() {
                         className="absolute inset-0 border-l-4 border-indigo-500 shadow-2xl z-10"
                         style={{ clipPath: `inset(0 0 0 ${sliderPosition}%)` }}
                       >
-                        <div className="h-full w-full overflow-y-auto bg-black">
-                           <MenuPreview data={menuData} theme={theme} className={cn(containerStyle, "min-h-full")} />
+                        <div className="h-full w-full overflow-y-auto bg-black scrollbar-hide">
+                           <MenuPreview 
+                             data={menuData} 
+                             theme={theme} 
+                             className={cn(containerStyle, "min-h-full")} 
+                             editable={isEditable}
+                             onUpdate={setMenuData}
+                           />
                         </div>
                       </div>
 
@@ -707,7 +775,13 @@ export default function Home() {
                       <div className="absolute top-4 right-4 z-30 bg-indigo-600/80 backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold text-white uppercase tracking-widest border border-white/10">Optimiert</div>
                     </div>
                   ) : (
-                    <MenuPreview data={menuData} theme={theme} className={containerStyle} />
+                    <MenuPreview 
+                      data={menuData} 
+                      theme={theme} 
+                      className={containerStyle} 
+                      editable={isEditable}
+                      onUpdate={setMenuData}
+                    />
                   )}
                 </div>
               </div>

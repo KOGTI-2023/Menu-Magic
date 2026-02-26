@@ -41,6 +41,7 @@ export interface MenuData {
   categories: MenuCategory[];
   footer?: MenuFooter;
   originalStyle?: MenuStyle;
+  suggestedPalettes?: MenuStyle[];
   processingDecision?: 'Repair' | 'Recreate';
 }
 
@@ -76,6 +77,7 @@ export async function extractMenuData(
     Dein primäres Ziel ist eine 1:1 "Perfect Restoration" der hochgeladenen Speisekarte. 
     Analysiere das Bild und entscheide, ob eine einfache Reparatur (Repair) möglich ist oder ob das Material zu schlecht ist und eine "High-Fidelity Digital Recreation" (Recreate) nötig ist.
     Extrahiere die originalen Stil-Informationen (Schriftart, Primärfarbe, Akzentfarbe, Hintergrundfarbe, Textfarbe), damit wir das Original-Layout exakt nachbauen können.
+    Generiere zusätzlich 3 passende, alternative Farbpaletten ('suggestedPalettes'), die zum Stil des Restaurants passen könnten.
     
     Regeln für die Extraktion:
     1. Erfasse für jeden Artikel: Nummer, Name, Beschreibung, Zutaten (ingredients).
@@ -109,6 +111,21 @@ export async function extractMenuData(
             textColor: { type: Type.STRING, description: "Textfarbe als Hex-Code" }
           },
           required: ["fontFamily", "primaryColor", "backgroundColor", "textColor"]
+        },
+        suggestedPalettes: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              fontFamily: { type: Type.STRING },
+              primaryColor: { type: Type.STRING },
+              accentColor: { type: Type.STRING },
+              backgroundColor: { type: Type.STRING },
+              textColor: { type: Type.STRING }
+            },
+            required: ["fontFamily", "primaryColor", "backgroundColor", "textColor"]
+          },
+          description: "3 alternative Farbpaletten, die zum Restaurant passen"
         },
         categories: {
           type: Type.ARRAY,

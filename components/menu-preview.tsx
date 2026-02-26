@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { memo } from "react";
 import { MenuData } from "@/lib/gemini";
 import { cn } from "@/lib/utils";
 
@@ -10,9 +10,23 @@ interface MenuPreviewProps {
   data: MenuData;
   theme: MenuTheme;
   className?: string;
+  editable?: boolean;
+  onUpdate?: (newData: MenuData) => void;
 }
 
-export function MenuPreview({ data, theme, className }: MenuPreviewProps) {
+export const MenuPreview = memo(({ data, theme, className, editable, onUpdate }: MenuPreviewProps) => {
+  const handleUpdate = (path: string, value: any) => {
+    if (!onUpdate) return;
+    const newData = JSON.parse(JSON.stringify(data));
+    const parts = path.split('.');
+    let current = newData;
+    for (let i = 0; i < parts.length - 1; i++) {
+      current = current[parts[i]];
+    }
+    current[parts[parts.length - 1]] = value;
+    onUpdate(newData);
+  };
+
   const renderTheme = () => {
     switch (theme) {
       case "original":
@@ -33,42 +47,153 @@ export function MenuPreview({ data, theme, className }: MenuPreviewProps) {
             }}
           >
             <div className="text-center mb-16 border-b-2 pb-8" style={{ borderColor: style.primaryColor }}>
-              <h1 className="text-5xl font-bold tracking-widest uppercase mb-4" style={{ color: style.primaryColor }}>
+              <h1 
+                className={cn("text-5xl font-bold tracking-widest uppercase mb-4", editable && "outline-dashed outline-1 outline-indigo-500/50 cursor-text")}
+                style={{ color: style.primaryColor }}
+                contentEditable={editable}
+                suppressContentEditableWarning
+                onBlur={(e) => handleUpdate('restaurantName', e.currentTarget.textContent)}
+              >
                 {data.restaurantName || "Speisekarte"}
               </h1>
               {data.subtitle && (
-                <p className="text-sm uppercase tracking-[0.3em] font-medium" style={{ color: style.accentColor }}>{data.subtitle}</p>
+                <p 
+                  className={cn("text-sm uppercase tracking-[0.3em] font-medium", editable && "outline-dashed outline-1 outline-indigo-500/50 cursor-text")}
+                  style={{ color: style.accentColor }}
+                  contentEditable={editable}
+                  suppressContentEditableWarning
+                  onBlur={(e) => handleUpdate('subtitle', e.currentTarget.textContent)}
+                >
+                  {data.subtitle}
+                </p>
               )}
             </div>
 
             <div className="space-y-16">
               {data.categories.map((category, idx) => (
-                <div key={idx} className="relative">
-                  <h2 className="text-3xl font-semibold text-center mb-10" style={{ color: style.primaryColor }}>
+                <div key={idx} className="relative group/cat">
+                  {editable && (
+                    <div className="absolute -left-10 top-0 flex flex-col gap-1 opacity-0 group-hover/cat:opacity-100 transition-opacity">
+                      <button 
+                        onClick={() => {
+                          if (idx === 0) return;
+                          const newCats = [...data.categories];
+                          [newCats[idx], newCats[idx-1]] = [newCats[idx-1], newCats[idx]];
+                          handleUpdate('categories', newCats);
+                        }}
+                        className="p-1 bg-indigo-600 text-white rounded hover:bg-indigo-500"
+                      >
+                        ↑
+                      </button>
+                      <button 
+                        onClick={() => {
+                          if (idx === data.categories.length - 1) return;
+                          const newCats = [...data.categories];
+                          [newCats[idx], newCats[idx+1]] = [newCats[idx+1], newCats[idx]];
+                          handleUpdate('categories', newCats);
+                        }}
+                        className="p-1 bg-indigo-600 text-white rounded hover:bg-indigo-500"
+                      >
+                        ↓
+                      </button>
+                    </div>
+                  )}
+                  <h2 
+                    className={cn("text-3xl font-semibold text-center mb-10", editable && "outline-dashed outline-1 outline-indigo-500/50 cursor-text")}
+                    style={{ color: style.primaryColor }}
+                    contentEditable={editable}
+                    suppressContentEditableWarning
+                    onBlur={(e) => {
+                      const newCats = [...data.categories];
+                      newCats[idx].category = e.currentTarget.textContent || "";
+                      handleUpdate('categories', newCats);
+                    }}
+                  >
                     {category.category}
                   </h2>
                   <div className="grid gap-8">
                     {category.items.map((item, itemIdx) => (
-                      <div key={itemIdx} className="flex flex-col">
+                      <div key={itemIdx} className="flex flex-col group/item relative">
+                        {editable && (
+                          <div className="absolute -left-10 top-0 flex flex-col gap-1 opacity-0 group-hover/item:opacity-100 transition-opacity">
+                            <button 
+                              onClick={() => {
+                                if (itemIdx === 0) return;
+                                const newItems = [...category.items];
+                                [newItems[itemIdx], newItems[itemIdx-1]] = [newItems[itemIdx-1], newItems[itemIdx]];
+                                const newCats = [...data.categories];
+                                newCats[idx].items = newItems;
+                                handleUpdate('categories', newCats);
+                              }}
+                              className="p-1 bg-zinc-700 text-white rounded hover:bg-zinc-600 text-[10px]"
+                            >
+                              ↑
+                            </button>
+                            <button 
+                              onClick={() => {
+                                if (itemIdx === category.items.length - 1) return;
+                                const newItems = [...category.items];
+                                [newItems[itemIdx], newItems[itemIdx+1]] = [newItems[itemIdx+1], newItems[itemIdx]];
+                                const newCats = [...data.categories];
+                                newCats[idx].items = newItems;
+                                handleUpdate('categories', newCats);
+                              }}
+                              className="p-1 bg-zinc-700 text-white rounded hover:bg-zinc-600 text-[10px]"
+                            >
+                              ↓
+                            </button>
+                          </div>
+                        )}
                         <div className="flex justify-between items-baseline mb-2">
                           <div className="flex items-baseline">
                             {item.number && (
-                              <span className="font-medium mr-4 w-8 text-right text-sm" style={{ color: style.accentColor }}>{item.number}</span>
+                              <span 
+                                className={cn("font-medium mr-4 w-8 text-right text-sm", editable && "outline-dashed outline-1 outline-indigo-500/50 cursor-text")}
+                                style={{ color: style.accentColor }}
+                                contentEditable={editable}
+                                suppressContentEditableWarning
+                                onBlur={(e) => {
+                                  const newCats = [...data.categories];
+                                  newCats[idx].items[itemIdx].number = e.currentTarget.textContent || "";
+                                  handleUpdate('categories', newCats);
+                                }}
+                              >
+                                {item.number}
+                              </span>
                             )}
-                            <h3 className="text-xl font-bold">
+                            <h3 
+                              className={cn("text-xl font-bold", editable && "outline-dashed outline-1 outline-indigo-500/50 cursor-text")}
+                              contentEditable={editable}
+                              suppressContentEditableWarning
+                              onBlur={(e) => {
+                                const newCats = [...data.categories];
+                                newCats[idx].items[itemIdx].name = e.currentTarget.textContent || "";
+                                handleUpdate('categories', newCats);
+                              }}
+                            >
                               {item.name}
-                              {(item.additives || item.allergens) && (
-                                <sup className="ml-1 text-[10px] font-normal opacity-70">
-                                  ({[...(item.additives || []), ...(item.allergens || [])].join(",")})
-                                </sup>
-                              )}
                             </h3>
+                            {(item.additives || item.allergens) && (
+                              <sup className="ml-1 text-[10px] font-normal opacity-70">
+                                ({[...(item.additives || []), ...(item.allergens || [])].join(",")})
+                              </sup>
+                            )}
                           </div>
                           <div className="flex-grow border-b border-dotted mx-4 opacity-30" style={{ borderColor: style.textColor }}></div>
                           <div className="flex flex-col items-end">
                             {item.prices && item.prices.length > 0 ? (
                               item.prices.map((p, i) => (
-                                <span key={i} className="text-xl font-semibold whitespace-nowrap">
+                                <span 
+                                  key={i} 
+                                  className={cn("text-xl font-semibold whitespace-nowrap", editable && "outline-dashed outline-1 outline-indigo-500/50 cursor-text")}
+                                  contentEditable={editable}
+                                  suppressContentEditableWarning
+                                  onBlur={(e) => {
+                                    const newCats = [...data.categories];
+                                    newCats[idx].items[itemIdx].prices[i].value = e.currentTarget.textContent || "";
+                                    handleUpdate('categories', newCats);
+                                  }}
+                                >
                                   {p.label && <span className="text-sm font-normal italic mr-2" style={{ color: style.accentColor }}>{p.label}</span>}
                                   {p.value}
                                 </span>
@@ -77,7 +202,16 @@ export function MenuPreview({ data, theme, className }: MenuPreviewProps) {
                           </div>
                         </div>
                         {item.description && (
-                          <p className="text-sm italic ml-12 max-w-2xl leading-relaxed opacity-80">
+                          <p 
+                            className={cn("text-sm italic ml-12 max-w-2xl leading-relaxed opacity-80", editable && "outline-dashed outline-1 outline-indigo-500/50 cursor-text")}
+                            contentEditable={editable}
+                            suppressContentEditableWarning
+                            onBlur={(e) => {
+                              const newCats = [...data.categories];
+                              newCats[idx].items[itemIdx].description = e.currentTarget.textContent || "";
+                              handleUpdate('categories', newCats);
+                            }}
+                          >
                             {item.description}
                           </p>
                         )}
@@ -823,4 +957,6 @@ export function MenuPreview({ data, theme, className }: MenuPreviewProps) {
       {renderTheme()}
     </div>
   );
-}
+});
+
+MenuPreview.displayName = "MenuPreview";
