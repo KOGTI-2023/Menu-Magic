@@ -12,6 +12,11 @@ export async function convertPdfToImages(
   try {
     const pdfjsLib = await import('pdfjs-dist/legacy/build/pdf.js');
     
+    // File size check (max 20MB)
+    if (file.size > 20 * 1024 * 1024) {
+      throw new Error('Die Datei ist zu groß (maximal 20MB erlaubt).');
+    }
+    
     if (typeof window !== 'undefined' && !pdfjsLib.GlobalWorkerOptions.workerSrc) {
       pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
     }

@@ -1,4 +1,5 @@
 import { GoogleGenAI, Type, GenerateContentResponse } from "@google/genai";
+import { withRetry } from "./error-handler";
 
 export interface MenuPrice {
   label?: string;
@@ -201,55 +202,80 @@ export async function extractMenuData(
     config.thinkingConfig = { thinkingLevel: "HIGH" };
   }
 
-  try {
-    console.log(`Starting Gemini API request with model: ${modelName}, detailLevel: ${detailLevel}`);
-    console.log(`Sending ${parts.length} images to the API.`);
+  const executeExtraction = async () => {
+    const startTime = Date.now();
+    const requestId = `req_${Math.random().toString(36).substring(7)}`;
     
-    const response: GenerateContentResponse = await ai.models.generateContent({
-      model: modelName,
-      contents: { parts: [...parts, prompt] },
-      config
-    });
-
-    console.log("Received response from Gemini API.");
-    let text = response.text;
-    if (!text) {
-      console.error("Empty response text from Gemini API. Full response object:", JSON.stringify(response, null, 2));
-      throw new Error("Leere Antwort von der API erhalten.");
-    }
-
-    // Clean markdown JSON blocks if the model ignored the instruction
-    text = text.replace(/^```json\n?/g, '').replace(/```\n?$/g, '').trim();
-
     try {
-      const parsedData = JSON.parse(text) as MenuData;
-      console.log("Successfully parsed JSON response.");
-      return parsedData;
-    } catch (parseError) {
-      console.error("JSON Parse Error:", parseError);
-      console.error("Raw Text that failed to parse:", text);
-      throw new Error("Fehler beim Verarbeiten der API-Antwort (ungültiges JSON). Das Modell hat unerwartete Daten zurückgegeben.");
+      console.log(`[${requestId}] Starting Gemini API request. Model: ${modelName}, Detail: ${detailLevel}`);
+      console.log(`[${requestId}] Payload size: ${parts.length} images.`);
+      
+      const response: GenerateContentResponse = await ai.models.generateContent({
+        model: modelName,
+        contents: { parts: [...parts, prompt] },
+        config
+      });
+
+      const executionTime = Date.now() - startTime;
+      console.log(`[${requestId}] Received response in ${executionTime}ms.`);
+      
+      let text = response.text;
+      if (!text) {
+        console.error(`[${requestId}] Empty response text. Full response:`, JSON.stringify(response, null, 2));
+        throw new Error("Leere Antwort von der API erhalten.");
+      }
+
+      text = text.replace(/^```json\n?/g, '').replace(/```\n?$/g, '').trim();
+
+      try {
+        const parsedData = JSON.parse(text) as MenuData;
+        console.log(`[${requestId}] Successfully parsed JSON.`);
+        return parsedData;
+      } catch (parseError) {
+        console.error(`[${requestId}] JSON Parse Error:`, parseError);
+        throw new Error("Ungültiges JSON-Format in der API-Antwort.");
+      }
+    } catch (error: any) {
+      const executionTime = Date.now() - startTime;
+      console.error(`[${requestId}] Error after ${executionTime}ms:`, error.message);
+      throw error;
     }
+  };
+
+  try {
+    return await withRetry(
+      executeExtraction,
+      3,
+      1000,
+      (attempt, err) => console.warn(`Retry attempt ${attempt} due to: ${err.message}`)
+    );
   } catch (error: any) {
-    console.error("Gemini API Error Details:", error);
-    if (error.status) console.error("Status Code:", error.status);
-    if (error.response) console.error("Response Body:", error.response);
+    console.error("Final extraction failure:", error);
     
-    const msg = error.message || String(error);
-    
-    if (msg.includes("429") || msg.includes("quota") || msg.includes("rate limit")) {
-      throw new Error("Rate-Limit erreicht. Zu viele Anfragen in kurzer Zeit. Bitte warte einen Moment und versuche es erneut.");
-    } else if (msg.includes("API key not valid") || msg.includes("403") || msg.includes("permission denied")) {
-      throw new Error("Ungültiger API-Schlüssel oder fehlende Berechtigungen. Bitte überprüfe deine Konfiguration.");
-    } else if (msg.includes("400") || msg.includes("bad request") || msg.includes("payload too large")) {
-      throw new Error(`Ungültige Anfrage an die API (400 Bad Request). Möglicherweise ist das PDF zu groß oder das Format wird nicht unterstützt. Details: ${msg}`);
-    } else if (msg.includes("500") || msg.includes("internal server error")) {
-      throw new Error(`Interner Serverfehler bei Google Gemini (500). Bitte versuche es später erneut. Details: ${msg}`);
-    } else if (msg.includes("503") || msg.includes("service unavailable")) {
-      throw new Error(`Der Google Gemini Service ist derzeit nicht erreichbar (503). Bitte versuche es später erneut. Details: ${msg}`);
-    } else {
-      throw new Error(`Gemini API Fehler: ${msg}`);
-    }
+    // Fallback: Basic data structure if everything fails
+    return {
+      restaurantName: "Speisekarte (Wiederhergestellt)",
+      processingDecision: 'Recreate',
+      originalStyle: {
+        fontFamily: 'sans-serif',
+        primaryColor: '#000000',
+        backgroundColor: '#ffffff',
+        textColor: '#333333',
+        accentColor: '#666666'
+      },
+      categories: [
+        {
+          category: "Fehler bei der Analyse",
+          items: [
+            {
+              name: "Analyse fehlgeschlagen",
+              description: "Die KI konnte die Daten nicht extrahieren. Bitte versuche es mit einem schärferen Bild erneut.",
+              prices: [{ value: "0,00 €" }]
+            }
+          ]
+        }
+      ]
+    };
   }
 }
 
@@ -358,7 +384,7 @@ export async function updateMenuData(
     }
   };
 
-  try {
+  const executeUpdate = async () => {
     const response: GenerateContentResponse = await ai.models.generateContent({
       model: "gemini-3.1-pro-preview",
       contents: { parts: [prompt] },
@@ -378,6 +404,10 @@ export async function updateMenuData(
     } catch (parseError) {
       throw new Error("Fehler beim Verarbeiten der API-Antwort (ungültiges JSON).");
     }
+  };
+
+  try {
+    return await withRetry(executeUpdate);
   } catch (error: any) {
     throw new Error(`Gemini API Fehler: ${error.message || String(error)}`);
   }

@@ -1,0 +1,86 @@
+export interface AppError {
+  code: string;
+  message: string;
+  details?: any;
+  timestamp: string;
+}
+
+export interface ApiResponse<T = any> {
+  success: boolean;
+  data?: T;
+  error?: AppError;
+  timestamp: string;
+}
+
+export class AppErrorFactory {
+  static create(code: string, message: string, details?: any): AppError {
+    return {
+      code,
+      message,
+      details,
+      timestamp: new Date().toISOString(),
+    };
+  }
+
+  static badRequest(message: string = "Ungültige Anfrage", details?: any): AppError {
+    return this.create("BAD_REQUEST", message, details);
+  }
+
+  static unauthorized(message: string = "Nicht autorisiert"): AppError {
+    return this.create("UNAUTHORIZED", message);
+  }
+
+  static apiError(message: string = "API-Fehler", details?: any): AppError {
+    return this.create("API_ERROR", message, details);
+  }
+
+  static timeout(message: string = "Zeitüberschreitung"): AppError {
+    return this.create("TIMEOUT", message);
+  }
+
+  static internal(message: string = "Interner Serverfehler", details?: any): AppError {
+    return this.create("INTERNAL_ERROR", message, details);
+  }
+}
+
+export function createErrorResponse(code: string, message: string, details?: any): ApiResponse {
+  return {
+    success: false,
+    error: AppErrorFactory.create(code, message, details),
+    timestamp: new Date().toISOString(),
+  };
+}
+
+export async function withRetry<T>(
+  fn: () => Promise<T>,
+  retries: number = 3,
+  delay: number = 1000,
+  onRetry?: (attempt: number, error: any) => void
+): Promise<T> {
+  let lastError: any;
+  for (let i = 0; i < retries; i++) {
+    try {
+      return await fn();
+    } catch (error: any) {
+      lastError = error;
+      const isRetryable = 
+        error.message?.includes("429") || 
+        error.message?.includes("500") || 
+        error.message?.includes("503") ||
+        error.message?.includes("quota") ||
+        error.message?.includes("rate limit") ||
+        error.message?.includes("timeout");
+
+      if (!isRetryable || i === retries - 1) {
+        throw error;
+      }
+
+      if (onRetry) onRetry(i + 1, error);
+      
+      // Exponential backoff
+      const waitTime = delay * Math.pow(2, i);
+      await new Promise((resolve) => setTimeout(resolve, waitTime));
+    }
+  }
+  throw lastError;
+}

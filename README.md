@@ -6,18 +6,19 @@ Menu Magic ist eine smarte Web-App, die schlecht gescannte PDF-Speisekarten in h
 
 *   **📄 PDF-Upload & Analyse:** Einfaches Drag-and-Drop von PDF-Speisekarten. Die Analyse startet sofort automatisch.
 *   **🛠️ Bildoptimierung:** Integrierte Werkzeuge zur Verbesserung der Scanqualität (Deskew, Graustufen, Rotation, Kontrast/Helligkeit).
-*   **👁️ Live-Vorschau:** Eine interaktive, scrollbare Vorschau zeigt die optimierten Seiten in Echtzeit.
-*   **🧠 KI-Textextraktion:** Nutzt Google Gemini (Image Understanding), um strukturierte Daten (Kategorien, Gerichte, Preise) aus den Bildern zu extrahieren.
-*   **✨ Auto-Cleanup:** Intelligente Bereinigung von doppelten Satzzeichen und Formatierungsfehlern.
-*   **🌐 HTML-Export:** Generiert eine moderne, responsive HTML-Speisekarte (gestylt mit Tailwind CSS).
-*   **🖨️ PDF-Export:** Erstellt ein neu gestaltetes, druckfertiges PDF-Dokument.
+*   **🧠 KI-Restauration (Gemini 3.1 Pro):** Nutzt "Original-First" Logik. Die KI entscheidet zwischen einer direkten Reparatur (Repair) oder einer digitalen Neukonstruktion (Recreate), um maximale Qualität zu garantieren.
+*   **🎨 KI-Design-Assistent:** Ein interaktiver Begleiter, der auf Text- und Sprachbefehle (Voice-to-Text) reagiert, um das Design anzupassen oder Inhalte zu ändern.
+*   **🖌️ Direkt-Editor:** Bearbeite Texte, Preise und Kategorien direkt in der Vorschau. Verschiebe Elemente per Klick für das perfekte Layout.
+*   **🌈 Farbpaletten-Generator:** Automatische Generierung von 3 passenden Farbpaletten basierend auf dem Stil des Restaurants.
+*   **👁️ Vorher/Nachher-Vergleich:** Ein interaktiver Slider ermöglicht den direkten Vergleich zwischen dem Original-Scan und dem optimierten Ergebnis.
+*   **🌐 Multi-Export:** Generiert moderne, responsive HTML-Speisekarten und druckfertige PDF-Dokumente.
 
 ## 🛠️ Tech Stack
 
-*   **Frontend:** Next.js 15 (App Router), React, Tailwind CSS, Framer Motion
-*   **PDF-Verarbeitung:** pdfjs-dist, jsPDF
-*   **KI-Integration:** @google/genai (Gemini 3.1 Pro)
-*   **Icons:** Lucide React
+*   **Frontend:** Next.js 15 (App Router), React, Tailwind CSS, motion (Framer Motion)
+*   **PDF-Verarbeitung:** pdfjs-dist, html2pdf.js
+*   **KI-Integration:** @google/genai (Gemini 3.1 Pro & Flash)
+*   **Observability:** Strukturiertes Logging mit Request-IDs und Performance-Tracking.
 
 ## ⚙️ Setup & Installation
 
@@ -33,7 +34,7 @@ Menu Magic ist eine smarte Web-App, die schlecht gescannte PDF-Speisekarten in h
     ```
 
 3.  **Umgebungsvariablen konfigurieren:**
-    Erstelle eine `.env.local` Datei im Hauptverzeichnis und füge deinen Gemini API-Schlüssel hinzu:
+    Erstelle eine `.env.local` Datei im Hauptverzeichnis:
     ```env
     NEXT_PUBLIC_GEMINI_API_KEY=dein_api_schluessel_hier
     ```
@@ -42,7 +43,15 @@ Menu Magic ist eine smarte Web-App, die schlecht gescannte PDF-Speisekarten in h
     ```bash
     npm run dev
     ```
-    Die App ist nun unter `http://localhost:3000` erreichbar.
+
+## 🔍 Troubleshooting & Fehlercodes
+
+Sollte ein Fehler auftreten, achte auf die folgenden Codes in der Konsole oder der UI:
+
+*   **API_ERROR:** Problem bei der Kommunikation mit Google Gemini. Prüfe deinen API-Key.
+*   **TIMEOUT:** Die KI-Analyse hat zu lange gedauert. Versuche es mit weniger Seiten oder geringerer Detailtiefe.
+*   **FRONTEND_CRASH:** Ein unerwarteter Fehler im Browser. Die App bietet einen automatischen Recovery-Modus.
+*   **RATE_LIMIT:** Zu viele Anfragen in kurzer Zeit. Die App implementiert einen automatischen "Exponential Backoff" (Wiederholungsversuche).
 
 ## 🚀 Deployment
 

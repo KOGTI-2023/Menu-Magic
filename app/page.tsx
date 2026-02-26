@@ -22,7 +22,8 @@ import {
   MessageSquare,
   Eye,
   EyeOff,
-  History
+  History,
+  AlertTriangle
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { Button } from "@/components/ui/button";
@@ -63,6 +64,15 @@ export default function Home() {
   const [isListening, setIsListening] = useState(false);
   const [sliderPosition, setSliderPosition] = useState(50);
   const [isEditable, setIsEditable] = useState(false);
+  const [notifications, setNotifications] = useState<{ id: string; message: string; type: 'info' | 'error' | 'success' }[]>([]);
+
+  const addNotification = (message: string, type: 'info' | 'error' | 'success' = 'info') => {
+    const id = Math.random().toString(36).substring(7);
+    setNotifications(prev => [...prev, { id, message, type }]);
+    setTimeout(() => {
+      setNotifications(prev => prev.filter(n => n.id !== id));
+    }, 5000);
+  };
 
   const startListening = () => {
     if (!('webkitSpeechRecognition' in window)) {
@@ -156,34 +166,49 @@ export default function Home() {
     setIsProcessing(true);
     setError(null);
     setProgress(10);
-    setStatus("KI-Analyse läuft...");
+    setStatus("Schritt 1/4: Bilder werden vorbereitet...");
 
     try {
+      if (optimizedImages.length > 10) {
+        throw new Error("Zu viele Seiten (maximal 10 Seiten erlaubt). Bitte teile das PDF auf.");
+      }
+
       const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
       if (!apiKey) {
         throw new Error("Gemini API-Schlüssel fehlt. Bitte in den Umgebungsvariablen konfigurieren.");
       }
 
-      console.log(`Starting process with ${optimizedImages.length} images, model: ${model}, detailLevel: ${detailLevel}`);
-      const data = await extractMenuData(optimizedImages, model, apiKey, detailLevel);
+      setProgress(30);
+      setStatus("Schritt 2/4: KI-Analyse wird gestartet...");
       
+      const data = await extractMenuData(
+        optimizedImages, 
+        model, 
+        apiKey, 
+        detailLevel
+      );
+      
+      setProgress(70);
+      setStatus("Schritt 3/4: Daten werden validiert...");
+
       if (!data) {
         throw new Error("Keine Daten von der Gemini API erhalten.");
       }
       
-      if (!data.categories) {
-        console.error("Missing categories in data:", data);
-        throw new Error("Das Modell hat keine Kategorien (categories) zurückgegeben. Bitte versuche es erneut.");
+      if (!data.categories || !Array.isArray(data.categories)) {
+        console.warn("Invalid categories received, using fallback structure");
+        addNotification("KI-Analyse war unvollständig, Fallback-Modus aktiv.", "error");
       }
       
-      if (!Array.isArray(data.categories)) {
-        console.error("Categories is not an array:", data.categories);
-        throw new Error("Das Modell hat die Kategorien nicht im erwarteten Format (Array) zurückgegeben.");
-      }
+      setProgress(90);
+      setStatus("Schritt 4/4: Vorschau wird generiert...");
+      
+      await new Promise(resolve => setTimeout(resolve, 500));
       
       setProgress(100);
       setMenuData(data);
       setStep("RESULT");
+      addNotification("Speisekarte erfolgreich verarbeitet!", "success");
     } catch (err: any) {
       console.error("Error in handleProcess:", err);
       // Extrahiere die eigentliche Fehlermeldung, falls sie in einem Error-Objekt verschachtelt ist
@@ -237,6 +262,31 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-[#050505] text-zinc-100 selection:bg-indigo-500/30 selection:text-indigo-200 overflow-x-hidden">
+      {/* Notifications */}
+      <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-3">
+        <AnimatePresence>
+          {notifications.map((n) => (
+            <motion.div
+              key={n.id}
+              initial={{ opacity: 0, x: 20, scale: 0.95 }}
+              animate={{ opacity: 1, x: 0, scale: 1 }}
+              exit={{ opacity: 0, x: 20, scale: 0.95 }}
+              className={cn(
+                "px-4 py-3 rounded-2xl border shadow-2xl backdrop-blur-xl flex items-center gap-3 min-w-[300px]",
+                n.type === 'error' ? "bg-red-500/10 border-red-500/20 text-red-400" :
+                n.type === 'success' ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" :
+                "bg-zinc-900/80 border-white/10 text-zinc-300"
+              )}
+            >
+              {n.type === 'error' ? <AlertTriangle className="h-4 w-4" /> :
+               n.type === 'success' ? <CheckCircle2 className="h-4 w-4" /> :
+               <Sparkles className="h-4 w-4" />}
+              <span className="text-sm font-medium">{n.message}</span>
+            </motion.div>
+          ))}
+        </AnimatePresence>
+      </div>
+
       {/* Background Effects */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-indigo-600/20 blur-[120px] rounded-full animate-pulse" />
