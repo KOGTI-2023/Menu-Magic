@@ -4,7 +4,7 @@ import React from "react";
 import { MenuData } from "@/lib/gemini";
 import { cn } from "@/lib/utils";
 
-export type MenuTheme = "modern" | "classic" | "minimalist" | "rustic" | "elegant" | "vintage" | "dark" | "artdeco" | "abstract" | "handdrawn" | "premium" | "orchidee";
+export type MenuTheme = "original" | "modern" | "classic" | "minimalist" | "rustic" | "elegant" | "vintage" | "dark" | "artdeco" | "abstract" | "handdrawn" | "premium" | "orchidee";
 
 interface MenuPreviewProps {
   data: MenuData;
@@ -15,6 +15,92 @@ interface MenuPreviewProps {
 export function MenuPreview({ data, theme, className }: MenuPreviewProps) {
   const renderTheme = () => {
     switch (theme) {
+      case "original":
+        const style = data.originalStyle || {
+          fontFamily: 'sans-serif',
+          primaryColor: '#000000',
+          backgroundColor: '#ffffff',
+          textColor: '#333333',
+          accentColor: '#666666'
+        };
+        return (
+          <div 
+            className="p-12 max-w-4xl mx-auto shadow-2xl relative"
+            style={{ 
+              fontFamily: style.fontFamily,
+              backgroundColor: style.backgroundColor,
+              color: style.textColor
+            }}
+          >
+            <div className="text-center mb-16 border-b-2 pb-8" style={{ borderColor: style.primaryColor }}>
+              <h1 className="text-5xl font-bold tracking-widest uppercase mb-4" style={{ color: style.primaryColor }}>
+                {data.restaurantName || "Speisekarte"}
+              </h1>
+              {data.subtitle && (
+                <p className="text-sm uppercase tracking-[0.3em] font-medium" style={{ color: style.accentColor }}>{data.subtitle}</p>
+              )}
+            </div>
+
+            <div className="space-y-16">
+              {data.categories.map((category, idx) => (
+                <div key={idx} className="relative">
+                  <h2 className="text-3xl font-semibold text-center mb-10" style={{ color: style.primaryColor }}>
+                    {category.category}
+                  </h2>
+                  <div className="grid gap-8">
+                    {category.items.map((item, itemIdx) => (
+                      <div key={itemIdx} className="flex flex-col">
+                        <div className="flex justify-between items-baseline mb-2">
+                          <div className="flex items-baseline">
+                            {item.number && (
+                              <span className="font-medium mr-4 w-8 text-right text-sm" style={{ color: style.accentColor }}>{item.number}</span>
+                            )}
+                            <h3 className="text-xl font-bold">
+                              {item.name}
+                              {(item.additives || item.allergens) && (
+                                <sup className="ml-1 text-[10px] font-normal opacity-70">
+                                  ({[...(item.additives || []), ...(item.allergens || [])].join(",")})
+                                </sup>
+                              )}
+                            </h3>
+                          </div>
+                          <div className="flex-grow border-b border-dotted mx-4 opacity-30" style={{ borderColor: style.textColor }}></div>
+                          <div className="flex flex-col items-end">
+                            {item.prices && item.prices.length > 0 ? (
+                              item.prices.map((p, i) => (
+                                <span key={i} className="text-xl font-semibold whitespace-nowrap">
+                                  {p.label && <span className="text-sm font-normal italic mr-2" style={{ color: style.accentColor }}>{p.label}</span>}
+                                  {p.value}
+                                </span>
+                              ))
+                            ) : null}
+                          </div>
+                        </div>
+                        {item.description && (
+                          <p className="text-sm italic ml-12 max-w-2xl leading-relaxed opacity-80">
+                            {item.description}
+                          </p>
+                        )}
+                        {item.ingredients && item.ingredients.length > 0 && (
+                          <p className="text-xs ml-12 mt-1 opacity-70">
+                            Zutaten: {item.ingredients.join(", ")}
+                          </p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+            {data.footer && (
+              <div className="mt-24 pt-8 border-t text-xs space-y-2" style={{ borderColor: style.primaryColor, color: style.accentColor }}>
+                {data.footer.additives && <p><strong className="font-medium" style={{ color: style.textColor }}>Zusatzstoffe:</strong> {data.footer.additives}</p>}
+                {data.footer.allergens && <p><strong className="font-medium" style={{ color: style.textColor }}>Allergene:</strong> {data.footer.allergens}</p>}
+              </div>
+            )}
+          </div>
+        );
+
       case "classic":
         return (
           <div className="font-serif bg-[#fdfbf7] text-[#2c2c2c] p-12 max-w-4xl mx-auto shadow-xl border border-[#e5e0d8]">

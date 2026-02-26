@@ -10,9 +10,11 @@ export interface MenuItem {
   name: string;
   description?: string;
   prices: MenuPrice[];
+  ingredients?: string[];
   additives?: string[];
   allergens?: string[];
   dietary?: string[];
+  boundingBox?: { x: number, y: number, width: number, height: number };
 }
 
 export interface MenuCategory {
@@ -25,11 +27,21 @@ export interface MenuFooter {
   allergens?: string;
 }
 
+export interface MenuStyle {
+  fontFamily: string;
+  primaryColor: string;
+  accentColor: string;
+  backgroundColor: string;
+  textColor: string;
+}
+
 export interface MenuData {
   restaurantName?: string;
   subtitle?: string;
   categories: MenuCategory[];
   footer?: MenuFooter;
+  originalStyle?: MenuStyle;
+  processingDecision?: 'Repair' | 'Recreate';
 }
 
 export async function extractMenuData(
@@ -57,17 +69,22 @@ export async function extractMenuData(
   }
 
   const prompt = {
-    text: `Du bist ein professioneller KI-Assistent für die Datenextraktion. Analysiere diese Bilder einer Restaurant-Speisekarte.
-    Deine Aufgabe ist es, strukturierte Daten zu extrahieren: Restaurantname, Untertitel/Infos, Kategorien, Gerichte/Getränke und Fußnoten.
+    text: `Du bist ein professioneller KI-Assistent für die Datenextraktion und visuelle Restauration. Analysiere diese Bilder einer Restaurant-Speisekarte.
+    Deine Aufgabe ist es, strukturierte Daten zu extrahieren UND das visuelle Erscheinungsbild zu analysieren.
+    
+    WICHTIGES ZIEL ("Original-First" Optimization):
+    Dein primäres Ziel ist eine 1:1 "Perfect Restoration" der hochgeladenen Speisekarte. 
+    Analysiere das Bild und entscheide, ob eine einfache Reparatur (Repair) möglich ist oder ob das Material zu schlecht ist und eine "High-Fidelity Digital Recreation" (Recreate) nötig ist.
+    Extrahiere die originalen Stil-Informationen (Schriftart, Primärfarbe, Akzentfarbe, Hintergrundfarbe, Textfarbe), damit wir das Original-Layout exakt nachbauen können.
     
     Regeln für die Extraktion:
-    1. Erfasse für jeden Artikel: Nummer (falls vorhanden, z.B. "1.", "89."), Name, Beschreibung.
-    2. Erfasse ALLE Preise eines Artikels. Wenn es mehrere gibt (z.B. "kleine Portion", "0,3 l", "1 Stück"), trage das Label und den Wert ("5,80 €") in das 'prices' Array ein. Gibt es nur einen Preis, lass das Label leer.
-    3. Achte auf hochgestellte oder eingeklammerte Zeichen hinter den Namen (z.B. "(15,16,a,c,d,f)"). Trenne diese in 'additives' (Zahlen, z.B. "15", "16") und 'allergens' (Buchstaben, z.B. "a", "c").
-    4. Erfasse am Ende der Speisekarte die Legende für Zusatzstoffe und Allergene im 'footer'.
-    5. Korrigiere OCR-Fehler (z.B. entferne überflüssige Sonderzeichen). Formatiere Preise einheitlich.
-    6. ${detailInstruction}
-    7. WICHTIG: Die Speisekarte ist für ein familienfreundliches Restaurant (z.B. mit thailändischer und gutbürgerlicher Küche). Vermeide jegliche futuristische, übertrieben moderne oder kühle Sprache. Der Ton soll warm, einladend, professionell und appetitanregend sein.
+    1. Erfasse für jeden Artikel: Nummer, Name, Beschreibung, Zutaten (ingredients).
+    2. Erfasse ALLE Preise eines Artikels mit Label und Wert.
+    3. Trenne hochgestellte Zeichen in 'additives' (Zahlen) und 'allergens' (Buchstaben).
+    4. Versuche für jeden Artikel eine grobe 'boundingBox' (x, y, width, height in Prozent 0-100) zu schätzen, um die relative Position zu erhalten.
+    5. Erfasse am Ende der Speisekarte die Legende für Zusatzstoffe und Allergene im 'footer'.
+    6. Korrigiere OCR-Fehler (z.B. entferne überflüssige Satzzeichen, doppelte Punkte). Formatiere Preise einheitlich.
+    7. ${detailInstruction}
     8. Antworte AUSSCHLIESSLICH mit einem validen JSON-Objekt, das exakt dem geforderten Schema entspricht. Keine Markdown-Formatierung (\`\`\`json) um das JSON herum.
     9. Antworte komplett auf Deutsch.`
   };
@@ -81,6 +98,18 @@ export async function extractMenuData(
       properties: {
         restaurantName: { type: Type.STRING, description: "Name des Restaurants" },
         subtitle: { type: Type.STRING, description: "Untertitel, Adresse oder Öffnungszeiten" },
+        processingDecision: { type: Type.STRING, description: "Entscheidung: 'Repair' oder 'Recreate'" },
+        originalStyle: {
+          type: Type.OBJECT,
+          properties: {
+            fontFamily: { type: Type.STRING, description: "Geschätzte CSS font-family (z.B. 'serif', 'sans-serif', 'monospace')" },
+            primaryColor: { type: Type.STRING, description: "Hauptfarbe als Hex-Code (z.B. '#000000')" },
+            accentColor: { type: Type.STRING, description: "Akzentfarbe als Hex-Code" },
+            backgroundColor: { type: Type.STRING, description: "Hintergrundfarbe als Hex-Code" },
+            textColor: { type: Type.STRING, description: "Textfarbe als Hex-Code" }
+          },
+          required: ["fontFamily", "primaryColor", "backgroundColor", "textColor"]
+        },
         categories: {
           type: Type.ARRAY,
           items: {
@@ -95,6 +124,11 @@ export async function extractMenuData(
                     number: { type: Type.STRING, description: "Nummer des Gerichts, z.B. '1.' oder '89'" },
                     name: { type: Type.STRING, description: "Name des Gerichts oder Getränks" },
                     description: { type: Type.STRING, description: "Beschreibung des Gerichts" },
+                    ingredients: {
+                      type: Type.ARRAY,
+                      items: { type: Type.STRING },
+                      description: "Liste der Hauptzutaten"
+                    },
                     prices: {
                       type: Type.ARRAY,
                       items: {
@@ -116,6 +150,15 @@ export async function extractMenuData(
                       type: Type.ARRAY,
                       items: { type: Type.STRING },
                       description: "Allergene (meist Buchstaben, z.B. 'a', 'f')"
+                    },
+                    boundingBox: {
+                      type: Type.OBJECT,
+                      properties: {
+                        x: { type: Type.NUMBER },
+                        y: { type: Type.NUMBER },
+                        width: { type: Type.NUMBER },
+                        height: { type: Type.NUMBER }
+                      }
                     }
                   },
                   required: ["name", "prices"]
@@ -133,7 +176,7 @@ export async function extractMenuData(
           }
         }
       },
-      required: ["categories"]
+      required: ["categories", "processingDecision", "originalStyle"]
     }
   };
 
@@ -190,5 +233,135 @@ export async function extractMenuData(
     } else {
       throw new Error(`Gemini API Fehler: ${msg}`);
     }
+  }
+}
+
+export async function updateMenuData(
+  currentData: MenuData,
+  promptText: string,
+  apiKey: string
+): Promise<MenuData> {
+  const ai = new GoogleGenAI({ apiKey });
+  
+  const prompt = {
+    text: `Du bist ein professioneller KI-Assistent für Speisekarten-Design. 
+    Hier ist die aktuelle Speisekarte als JSON:
+    ${JSON.stringify(currentData)}
+    
+    Der Benutzer möchte folgende Änderung vornehmen:
+    "${promptText}"
+    
+    Wende die Änderung auf das JSON an und gib das aktualisierte JSON zurück.
+    Behalte alle anderen Daten bei, die nicht von der Änderung betroffen sind.
+    Antworte AUSSCHLIESSLICH mit einem validen JSON-Objekt, das exakt dem Schema entspricht. Keine Markdown-Formatierung (\`\`\`json) um das JSON herum.`
+  };
+
+  const config: any = {
+    responseMimeType: "application/json",
+    responseSchema: {
+      type: Type.OBJECT,
+      properties: {
+        restaurantName: { type: Type.STRING },
+        subtitle: { type: Type.STRING },
+        processingDecision: { type: Type.STRING },
+        originalStyle: {
+          type: Type.OBJECT,
+          properties: {
+            fontFamily: { type: Type.STRING },
+            primaryColor: { type: Type.STRING },
+            accentColor: { type: Type.STRING },
+            backgroundColor: { type: Type.STRING },
+            textColor: { type: Type.STRING }
+          },
+          required: ["fontFamily", "primaryColor", "backgroundColor", "textColor"]
+        },
+        categories: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              category: { type: Type.STRING },
+              items: {
+                type: Type.ARRAY,
+                items: {
+                  type: Type.OBJECT,
+                  properties: {
+                    number: { type: Type.STRING },
+                    name: { type: Type.STRING },
+                    description: { type: Type.STRING },
+                    ingredients: {
+                      type: Type.ARRAY,
+                      items: { type: Type.STRING }
+                    },
+                    prices: {
+                      type: Type.ARRAY,
+                      items: {
+                        type: Type.OBJECT,
+                        properties: {
+                          label: { type: Type.STRING },
+                          value: { type: Type.STRING }
+                        },
+                        required: ["value"]
+                      }
+                    },
+                    additives: {
+                      type: Type.ARRAY,
+                      items: { type: Type.STRING }
+                    },
+                    allergens: {
+                      type: Type.ARRAY,
+                      items: { type: Type.STRING }
+                    },
+                    boundingBox: {
+                      type: Type.OBJECT,
+                      properties: {
+                        x: { type: Type.NUMBER },
+                        y: { type: Type.NUMBER },
+                        width: { type: Type.NUMBER },
+                        height: { type: Type.NUMBER }
+                      }
+                    }
+                  },
+                  required: ["name", "prices"]
+                }
+              }
+            },
+            required: ["category", "items"]
+          }
+        },
+        footer: {
+          type: Type.OBJECT,
+          properties: {
+            additives: { type: Type.STRING },
+            allergens: { type: Type.STRING }
+          }
+        }
+      },
+      required: ["categories"]
+    }
+  };
+
+  try {
+    const response: GenerateContentResponse = await ai.models.generateContent({
+      model: "gemini-3.1-pro-preview",
+      contents: { parts: [prompt] },
+      config
+    });
+
+    let text = response.text;
+    if (!text) {
+      throw new Error("Leere Antwort von der API erhalten.");
+    }
+
+    text = text.replace(/^```json\n?/g, '').replace(/```\n?$/g, '').trim();
+
+    try {
+      const parsedData = JSON.parse(text) as MenuData;
+      return parsedData;
+    } catch (parseError) {
+      throw new Error("Fehler beim Verarbeiten der API-Antwort (ungültiges JSON).");
+    }
+  } catch (error: any) {
+    throw new Error(`Gemini API Fehler: ${error.message || String(error)}`);
   }
 }

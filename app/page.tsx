@@ -16,10 +16,17 @@ import {
   Sparkles,
   Zap,
   ShieldCheck,
-  Layout
+  Layout,
+  Mic,
+  Send,
+  MessageSquare,
+  Eye,
+  EyeOff,
+  History
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -34,9 +41,9 @@ type Step = "UPLOAD" | "OPTIMIZE" | "PROCESS" | "RESULT";
 export default function Home() {
   const [step, setStep] = useState<Step>("UPLOAD");
   const [file, setFile] = useState<File | null>(null);
-  const [model, setModel] = useState<string>("gemini-2.5-flash-lite");
+  const [model, setModel] = useState<string>("gemini-3.1-pro-preview");
   const [detailLevel, setDetailLevel] = useState<string>("premium");
-  const [theme, setTheme] = useState<MenuTheme>("premium");
+  const [theme, setTheme] = useState<MenuTheme>("original");
   const [containerStyle, setContainerStyle] = useState<string>("bg-zinc-900/40 backdrop-blur-xl border border-white/10 shadow-2xl rounded-3xl");
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -44,12 +51,56 @@ export default function Home() {
   const [menuData, setMenuData] = useState<MenuData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [optimizedImages, setOptimizedImages] = useState<string[]>([]);
+  const [showComparison, setShowComparison] = useState(false);
   const [optimizationOptions, setOptimizationOptions] = useState<OptimizationOptions>({
     intensity: 'medium',
     deskew: true,
     rotationAngle: 0,
     grayscale: true
   });
+  const [aiCommand, setAiCommand] = useState("");
+  const [isAiProcessing, setIsAiProcessing] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const [sliderPosition, setSliderPosition] = useState(50);
+
+  const startListening = () => {
+    if (!('webkitSpeechRecognition' in window)) {
+      setError("Spracherkennung wird von deinem Browser nicht unterstützt.");
+      return;
+    }
+
+    const recognition = new (window as any).webkitSpeechRecognition();
+    recognition.lang = 'de-DE';
+    recognition.onstart = () => setIsListening(true);
+    recognition.onend = () => setIsListening(false);
+    recognition.onresult = (event: any) => {
+      const transcript = event.results[0][0].transcript;
+      setAiCommand(transcript);
+    };
+    recognition.start();
+  };
+
+  const handleAiCommand = async () => {
+    if (!aiCommand.trim() || !menuData) return;
+    
+    setIsAiProcessing(true);
+    setError(null);
+    try {
+      const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
+      if (!apiKey) {
+        throw new Error("Gemini API-Schlüssel fehlt.");
+      }
+      
+      const { updateMenuData } = await import("@/lib/gemini");
+      const updatedData = await updateMenuData(menuData, aiCommand, apiKey);
+      setMenuData(updatedData);
+      setAiCommand("");
+    } catch (err: any) {
+      setError(`KI-Assistent Fehler: ${err.message}`);
+    } finally {
+      setIsAiProcessing(false);
+    }
+  };
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     if (acceptedFiles.length > 0) {
@@ -284,6 +335,7 @@ export default function Home() {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent className="bg-zinc-900 border-white/10 text-zinc-300">
+                          <SelectItem value="original">Original (Restauration)</SelectItem>
                           <SelectItem value="premium">Premium Glossy</SelectItem>
                           <SelectItem value="orchidee">Orchidee</SelectItem>
                           <SelectItem value="dark">Midnight Gold</SelectItem>
@@ -510,6 +562,7 @@ export default function Home() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent className="bg-zinc-900 border-white/10 text-zinc-300">
+                        <SelectItem value="original">Original (Restauration)</SelectItem>
                         <SelectItem value="premium">Premium Glossy</SelectItem>
                         <SelectItem value="orchidee">Orchidee</SelectItem>
                         <SelectItem value="dark">Midnight Gold</SelectItem>
@@ -542,6 +595,17 @@ export default function Home() {
                 </div>
                 
                 <div className="flex items-center gap-3">
+                  <Button 
+                    variant="outline" 
+                    className={cn(
+                      "border-white/10 bg-white/5 text-zinc-300 hover:bg-white/10",
+                      showComparison && "bg-indigo-500/20 border-indigo-500/50 text-indigo-300"
+                    )}
+                    onClick={() => setShowComparison(!showComparison)}
+                  >
+                    {showComparison ? <EyeOff className="mr-2 h-4 w-4" /> : <Eye className="mr-2 h-4 w-4" />}
+                    Vergleich
+                  </Button>
                   <Button variant="outline" className="border-white/10 bg-white/5 text-zinc-300 hover:bg-white/10" onClick={() => setStep("UPLOAD")}>
                     <RefreshCw className="mr-2 h-4 w-4" />
                     Neu starten
@@ -553,11 +617,98 @@ export default function Home() {
                 </div>
               </div>
 
+              {/* AI Assistant */}
+              <div className="p-6 bg-zinc-900/40 backdrop-blur-xl border border-white/10 rounded-3xl shadow-2xl space-y-4">
+                <div className="flex items-center gap-3 mb-2">
+                  <Sparkles className="h-5 w-5 text-indigo-400" />
+                  <h3 className="text-lg font-medium text-zinc-300">KI-Design-Assistent</h3>
+                </div>
+                <div className="flex gap-3">
+                  <div className="relative flex-1">
+                    <Input 
+                      placeholder="z.B. 'Erhöhe alle Pizza-Preise um 1€' oder 'Verschiebe Desserts nach oben'..."
+                      value={aiCommand}
+                      onChange={(e) => setAiCommand(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && handleAiCommand()}
+                      className="pr-10"
+                      disabled={isAiProcessing}
+                    />
+                    <button 
+                      onClick={startListening}
+                      className={cn(
+                        "absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-indigo-400 transition-colors",
+                        isListening && "text-red-500 animate-pulse"
+                      )}
+                    >
+                      <Mic className="h-4 w-4" />
+                    </button>
+                  </div>
+                  <Button 
+                    onClick={handleAiCommand} 
+                    disabled={isAiProcessing || !aiCommand.trim()}
+                    className="bg-indigo-600 hover:bg-indigo-500"
+                  >
+                    {isAiProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                  </Button>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <span className="text-xs text-zinc-500">Vorschläge:</span>
+                  <button onClick={() => setAiCommand("Preise um 10% erhöhen")} className="text-xs text-indigo-400 hover:underline">Preise +10%</button>
+                  <button onClick={() => setAiCommand("Schriftart auf modern ändern")} className="text-xs text-indigo-400 hover:underline">Modernere Schrift</button>
+                  <button onClick={() => setAiCommand("Überschriften in Dunkelrot")} className="text-xs text-indigo-400 hover:underline">Dunkelrote Titel</button>
+                </div>
+              </div>
+
               {/* Preview Area */}
               <div className="relative group">
                 <div className="absolute -inset-4 bg-gradient-to-r from-indigo-500/20 to-purple-500/20 blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
-                <div className="relative">
-                  <MenuPreview data={menuData} theme={theme} className={containerStyle} />
+                <div className="relative overflow-hidden rounded-3xl">
+                  {showComparison ? (
+                    <div className="relative h-[800px] w-full select-none overflow-hidden">
+                      {/* Original (Before) */}
+                      <div className="absolute inset-0">
+                        <div className="h-full w-full overflow-y-auto p-8 bg-zinc-800">
+                          {optimizedImages.map((img, i) => (
+                            <img key={i} src={`data:image/jpeg;base64,${img}`} className="w-full mb-8 rounded-lg shadow-xl" alt="Original" />
+                          ))}
+                        </div>
+                      </div>
+                      
+                      {/* Restored (After) */}
+                      <div 
+                        className="absolute inset-0 border-l-4 border-indigo-500 shadow-2xl z-10"
+                        style={{ clipPath: `inset(0 0 0 ${sliderPosition}%)` }}
+                      >
+                        <div className="h-full w-full overflow-y-auto bg-black">
+                           <MenuPreview data={menuData} theme={theme} className={cn(containerStyle, "min-h-full")} />
+                        </div>
+                      </div>
+
+                      {/* Slider Handle */}
+                      <div 
+                        className="absolute top-0 bottom-0 w-1 bg-indigo-500 z-20 cursor-ew-resize flex items-center justify-center"
+                        style={{ left: `${sliderPosition}%` }}
+                      >
+                        <div className="w-8 h-8 bg-indigo-500 rounded-full flex items-center justify-center shadow-lg -ml-0.5">
+                          <History className="h-4 w-4 text-white" />
+                        </div>
+                        <input 
+                          type="range" 
+                          min="0" 
+                          max="100" 
+                          value={sliderPosition} 
+                          onChange={(e) => setSliderPosition(parseInt(e.target.value))}
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-ew-resize"
+                        />
+                      </div>
+
+                      {/* Labels */}
+                      <div className="absolute top-4 left-4 z-30 bg-black/60 backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold text-white uppercase tracking-widest border border-white/10">Original</div>
+                      <div className="absolute top-4 right-4 z-30 bg-indigo-600/80 backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold text-white uppercase tracking-widest border border-white/10">Optimiert</div>
+                    </div>
+                  ) : (
+                    <MenuPreview data={menuData} theme={theme} className={containerStyle} />
+                  )}
                 </div>
               </div>
             </motion.div>
