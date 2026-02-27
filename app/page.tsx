@@ -63,7 +63,7 @@ export default function Home() {
   const [isAiProcessing, setIsAiProcessing] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [sliderPosition, setSliderPosition] = useState(50);
-  const [isEditable, setIsEditable] = useState(false);
+  const [isEditable, setIsEditable] = useState(true);
   const [notifications, setNotifications] = useState<{ id: string; message: string; type: 'info' | 'error' | 'success' }[]>([]);
 
   const addNotification = (message: string, type: 'info' | 'error' | 'success' = 'info') => {
@@ -116,7 +116,14 @@ export default function Home() {
       setAiCommand("");
       addNotification("Design erfolgreich angepasst!", "success");
     } catch (err: any) {
-      setError(`KI-Assistent Fehler: ${err.message}`);
+      const errorMessage = err.message || "Unbekannter Fehler aufgetreten.";
+      if (errorMessage.includes("429") || errorMessage.includes("Rate-Limit")) {
+        setError("Die KI ist derzeit überlastet. Bitte warte einen Moment und versuche es erneut.");
+      } else if (errorMessage.includes("400") || errorMessage.includes("ungültig")) {
+        setError("Die Anfrage war ungültig. Bitte formuliere deinen Wunsch etwas anders.");
+      } else {
+        setError(`KI-Assistent Fehler: ${errorMessage}. Bitte versuche es noch einmal.`);
+      }
     } finally {
       setIsAiProcessing(false);
     }
@@ -447,21 +454,29 @@ export default function Home() {
                   </CardHeader>
                   <CardContent className="space-y-6">
                     <div className="space-y-4">
-                      <Label className="text-zinc-400">Intensität</Label>
-                      <div className="grid grid-cols-3 gap-2">
-                        {(['low', 'medium', 'high'] as const).map((level) => (
-                          <Button
-                            key={level}
-                            variant={optimizationOptions.intensity === level ? "default" : "outline"}
-                            className={cn(
-                              "capitalize",
-                              optimizationOptions.intensity === level ? "bg-indigo-600" : "border-white/5 bg-black/20 text-zinc-400"
-                            )}
-                            onClick={() => setOptimizationOptions(prev => ({ ...prev, intensity: level }))}
-                          >
-                            {level === 'low' ? 'Leicht' : level === 'medium' ? 'Mittel' : 'Stark'}
-                          </Button>
-                        ))}
+                      <div className="flex items-center justify-between">
+                        <Label className="text-zinc-400">Intensität</Label>
+                        <span className="text-xs font-medium text-indigo-400 capitalize">
+                          {optimizationOptions.intensity === 'low' ? 'Leicht' : optimizationOptions.intensity === 'medium' ? 'Mittel' : 'Stark'}
+                        </span>
+                      </div>
+                      <input 
+                        type="range" 
+                        min="0" 
+                        max="2" 
+                        step="1"
+                        value={optimizationOptions.intensity === 'low' ? 0 : optimizationOptions.intensity === 'medium' ? 1 : 2}
+                        onChange={(e) => {
+                          const val = parseInt(e.target.value);
+                          const level = val === 0 ? 'low' : val === 1 ? 'medium' : 'high';
+                          setOptimizationOptions(prev => ({ ...prev, intensity: level }));
+                        }}
+                        className="w-full accent-indigo-500"
+                      />
+                      <div className="flex justify-between text-[10px] text-zinc-500 uppercase tracking-wider">
+                        <span>Leicht</span>
+                        <span>Mittel</span>
+                        <span>Stark</span>
                       </div>
                     </div>
 
@@ -817,22 +832,27 @@ export default function Home() {
                         </div>
                       </div>
 
-                      {/* Slider Handle */}
+                      {/* Slider Input (Invisible but covers the whole area) */}
+                      <input 
+                        type="range" 
+                        min="0" 
+                        max="100" 
+                        value={sliderPosition} 
+                        onChange={(e) => setSliderPosition(parseInt(e.target.value))}
+                        className="absolute inset-0 z-30 w-full h-full opacity-0 cursor-ew-resize"
+                      />
+
+                      {/* Slider Handle (Visual only) */}
                       <div 
-                        className="absolute top-0 bottom-0 w-1 bg-indigo-500 z-20 cursor-ew-resize flex items-center justify-center"
+                        className="absolute top-0 bottom-0 w-1 bg-indigo-500 z-20 pointer-events-none flex items-center justify-center transform -translate-x-1/2"
                         style={{ left: `${sliderPosition}%` }}
                       >
-                        <div className="w-8 h-8 bg-indigo-500 rounded-full flex items-center justify-center shadow-lg -ml-0.5">
-                          <History className="h-4 w-4 text-white" />
+                        <div className="w-10 h-10 bg-indigo-600 rounded-full flex items-center justify-center shadow-[0_0_15px_rgba(79,70,229,0.5)] border-2 border-white">
+                          <div className="flex gap-0.5">
+                            <ChevronLeft className="h-5 w-5 text-white" />
+                            <ChevronRight className="h-5 w-5 text-white" />
+                          </div>
                         </div>
-                        <input 
-                          type="range" 
-                          min="0" 
-                          max="100" 
-                          value={sliderPosition} 
-                          onChange={(e) => setSliderPosition(parseInt(e.target.value))}
-                          className="absolute inset-0 w-full h-full opacity-0 cursor-ew-resize"
-                        />
                       </div>
 
                       {/* Labels */}
