@@ -42,10 +42,11 @@ graph TD
 *   **Exponential Backoff:** Automatische Wiederholung bei Rate-Limits oder Serverfehlern der Gemini API.
 *   **Global Error Boundary:** Fängt Frontend-Crashes ab und ermöglicht einen sicheren Neustart ohne Datenverlust.
 *   **Fallback-Modus:** Bei kompletten Analysefehlern wird ein Basis-Menü generiert, um den Workflow nicht zu unterbrechen.
-*   **Strukturiertes Logging:** Jede Anfrage erhält eine eindeutige `requestId` zur Nachverfolgung der Performance und Fehlerursachen.
+*   **Zentrales Logging (`lib/logger.ts`):** Jede Anfrage erhält eine eindeutige `requestId` zur Nachverfolgung. Das Loglevel kann über die Umgebungsvariable `NEXT_PUBLIC_LOG_LEVEL` gesteuert werden, um im Produktionsbetrieb (z.B. mit Level `warn`) Ressourcen zu schonen.
 
 ## 4. API & Integrationen
 
+*   **Next.js API Routes:** Die gesamte Kommunikation mit der Gemini API findet sicher auf dem Server statt (`/api/analyze` und `/api/assistant`), wodurch der API-Schlüssel nicht an den Client gesendet wird.
 *   **Google Gemini SDK (@google/genai):** Zentrale Intelligenz für OCR, Layout-Analyse und Design-Anpassungen.
 *   **Web Speech API:** Ermöglicht die Steuerung des Design-Agenten per Sprache.
 *   **html2pdf.js:** Client-seitige Generierung von druckfertigen PDF-Dokumenten aus dem DOM.

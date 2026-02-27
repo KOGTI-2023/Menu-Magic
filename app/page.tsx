@@ -33,6 +33,7 @@ import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { convertPdfToImages, OptimizationOptions } from "@/lib/pdf-utils";
+import { logger } from "@/lib/logger";
 import { extractMenuData, MenuData } from "@/lib/gemini";
 import { MenuPreview, MenuTheme } from "@/components/menu-preview";
 import { cn } from "@/lib/utils";
@@ -277,7 +278,7 @@ export default function Home() {
       }
       
       if (!data.categories || !Array.isArray(data.categories)) {
-        console.warn("Invalid categories received, using fallback structure");
+        logger.warn("Invalid categories received, using fallback structure");
         addNotification("KI-Analyse war unvollständig, Fallback-Modus aktiv.", "error");
       }
       
@@ -291,7 +292,7 @@ export default function Home() {
       setStep("RESULT");
       addNotification("Speisekarte erfolgreich verarbeitet!", "success");
     } catch (err: any) {
-      console.error("Error in handleProcess:", err);
+      logger.error("Error in handleProcess:", err);
       // Extrahiere die eigentliche Fehlermeldung, falls sie in einem Error-Objekt verschachtelt ist
       const errorMessage = err instanceof Error ? err.message : 
                            (typeof err === 'object' && err !== null && 'message' in err) ? String(err.message) : 
@@ -333,7 +334,7 @@ export default function Home() {
       
       if (wasEditable) setIsEditable(true);
     } catch (err: any) {
-      console.error("Error generating PDF:", err);
+      logger.error("Error generating PDF:", err);
       setError(`Fehler beim Erstellen der PDF: ${err.message || String(err)}`);
     } finally {
       setIsProcessing(false);

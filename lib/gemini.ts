@@ -1,5 +1,6 @@
 import { GoogleGenAI, Type, GenerateContentResponse } from "@google/genai";
 import { withRetry } from "./error-handler";
+import { logger } from "./logger";
 
 export interface MenuPrice {
   label?: string;
@@ -207,8 +208,8 @@ export async function extractMenuData(
     const requestId = `req_${Math.random().toString(36).substring(7)}`;
     
     try {
-      console.log(`[${requestId}] Starting Gemini API request. Model: ${modelName}, Detail: ${detailLevel}`);
-      console.log(`[${requestId}] Payload size: ${parts.length} images.`);
+      logger.info(`[${requestId}] Starting Gemini API request. Model: ${modelName}, Detail: ${detailLevel}`);
+      logger.info(`[${requestId}] Payload size: ${parts.length} images.`);
       
       const response: GenerateContentResponse = await ai.models.generateContent({
         model: modelName,
@@ -217,11 +218,11 @@ export async function extractMenuData(
       });
 
       const executionTime = Date.now() - startTime;
-      console.log(`[${requestId}] Received response in ${executionTime}ms.`);
+      logger.info(`[${requestId}] Received response in ${executionTime}ms.`);
       
       let text = response.text;
       if (!text) {
-        console.error(`[${requestId}] Empty response text. Full response:`, JSON.stringify(response, null, 2));
+        logger.error(`[${requestId}] Empty response text. Full response:`, JSON.stringify(response, null, 2));
         throw new Error("Leere Antwort von der API erhalten.");
       }
 
@@ -229,15 +230,15 @@ export async function extractMenuData(
 
       try {
         const parsedData = JSON.parse(text) as MenuData;
-        console.log(`[${requestId}] Successfully parsed JSON.`);
+        logger.info(`[${requestId}] Successfully parsed JSON.`);
         return parsedData;
       } catch (parseError) {
-        console.error(`[${requestId}] JSON Parse Error:`, parseError);
+        logger.error(`[${requestId}] JSON Parse Error:`, parseError);
         throw new Error("Ungültiges JSON-Format in der API-Antwort.");
       }
     } catch (error: any) {
       const executionTime = Date.now() - startTime;
-      console.error(`[${requestId}] Error after ${executionTime}ms:`, error.message);
+      logger.error(`[${requestId}] Error after ${executionTime}ms:`, error.message);
       throw error;
     }
   };
@@ -247,10 +248,10 @@ export async function extractMenuData(
       executeExtraction,
       3,
       1000,
-      (attempt, err) => console.warn(`Retry attempt ${attempt} due to: ${err.message}`)
+      (attempt, err) => logger.warn(`Retry attempt ${attempt} due to: ${err.message}`)
     );
   } catch (error: any) {
-    console.error("Final extraction failure:", error);
+    logger.error("Final extraction failure:", error);
     
     // Fallback: Basic data structure if everything fails
     return {

@@ -16,9 +16,10 @@ Menu Magic ist eine smarte Web-App, die schlecht gescannte PDF-Speisekarten in h
 ## 🛠️ Tech Stack
 
 *   **Frontend:** Next.js 15 (App Router), React, Tailwind CSS, motion (Framer Motion)
+*   **Backend:** Next.js API Routes (`/api/analyze`, `/api/assistant`)
 *   **PDF-Verarbeitung:** pdfjs-dist, html2pdf.js
-*   **KI-Integration:** @google/genai (Gemini 3.1 Pro & Flash)
-*   **Observability:** Strukturiertes Logging mit Request-IDs und Performance-Tracking.
+*   **KI-Integration:** @google/genai (Gemini 3.1 Pro)
+*   **Observability:** Strukturiertes Logging mit anpassbaren Logleveln (`lib/logger.ts`).
 
 ## ⚙️ Setup & Installation
 
@@ -36,7 +37,8 @@ Menu Magic ist eine smarte Web-App, die schlecht gescannte PDF-Speisekarten in h
 3.  **Umgebungsvariablen konfigurieren:**
     Erstelle eine `.env.local` Datei im Hauptverzeichnis:
     ```env
-    NEXT_PUBLIC_GEMINI_API_KEY=dein_api_schluessel_hier
+    GEMINI_API_KEY=dein_api_schluessel_hier
+    NEXT_PUBLIC_LOG_LEVEL=debug # Optional: debug, info, warn, error, none
     ```
 
 4.  **Entwicklungsserver starten:**
@@ -55,4 +57,4 @@ Sollte ein Fehler auftreten, achte auf die folgenden Codes in der Konsole oder d
 
 ## 🚀 Deployment
 
-Die App ist für das Deployment auf Plattformen wie Vercel optimiert. Stelle sicher, dass die Umgebungsvariable `NEXT_PUBLIC_GEMINI_API_KEY` in den Deployment-Einstellungen konfiguriert ist.
+Die App ist für das Deployment auf Plattformen wie Vercel optimiert. Stelle sicher, dass die Umgebungsvariable `GEMINI_API_KEY` in den Deployment-Einstellungen konfiguriert ist. Setze in der Produktion `NEXT_PUBLIC_LOG_LEVEL=warn`, um Ressourcen zu schonen.

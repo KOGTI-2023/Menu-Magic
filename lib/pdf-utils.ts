@@ -1,3 +1,5 @@
+import { logger } from "./logger";
+
 export interface OptimizationOptions {
   intensity: 'low' | 'medium' | 'high';
   deskew: boolean;
@@ -78,7 +80,7 @@ export async function convertPdfToImages(
 
     return images;
   } catch (error) {
-    console.error("Error converting PDF to images:", error);
+    logger.error("Error converting PDF to images:", error);
     throw new Error(`Fehler bei der PDF-Verarbeitung: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
