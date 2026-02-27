@@ -64,15 +64,40 @@ export default function Home() {
   const [isListening, setIsListening] = useState(false);
   const [sliderPosition, setSliderPosition] = useState(50);
   const [isEditable, setIsEditable] = useState(true);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [notifications, setNotifications] = useState<{ id: string; message: string; type: 'info' | 'error' | 'success' }[]>([]);
 
-  const addNotification = (message: string, type: 'info' | 'error' | 'success' = 'info') => {
+  const addNotification = useCallback((message: string, type: 'info' | 'error' | 'success' = 'info') => {
     const id = Math.random().toString(36).substring(7);
     setNotifications(prev => [...prev, { id, message, type }]);
     setTimeout(() => {
       setNotifications(prev => prev.filter(n => n.id !== id));
     }, 5000);
-  };
+  }, []);
+
+  const handleMenuUpdate = useCallback((updatedData: MenuData) => {
+    setMenuData(prev => {
+      if (!prev) return updatedData;
+      
+      if (selectedCategory) {
+        const catIndex = prev.categories.findIndex(c => c.category === selectedCategory);
+        if (catIndex === -1) return updatedData;
+
+        const newCategories = [...prev.categories];
+        newCategories[catIndex] = updatedData.categories[0];
+
+        if (updatedData.categories[0].category !== selectedCategory) {
+          setTimeout(() => setSelectedCategory(updatedData.categories[0].category), 0);
+        }
+
+        return { ...updatedData, categories: newCategories };
+      }
+      
+      return updatedData;
+    });
+    
+    addNotification("Änderung gespeichert", "success");
+  }, [selectedCategory, addNotification]);
 
   const startListening = () => {
     if (!('webkitSpeechRecognition' in window)) {
@@ -123,6 +148,40 @@ export default function Home() {
         setError("Die Anfrage war ungültig. Bitte formuliere deinen Wunsch etwas anders.");
       } else {
         setError(`KI-Assistent Fehler: ${errorMessage}. Bitte versuche es noch einmal.`);
+      }
+    } finally {
+      setIsAiProcessing(false);
+    }
+  };
+
+  const handleUpgradeDetail = async () => {
+    if (!menuData) return;
+    setIsAiProcessing(true);
+    setError(null);
+    try {
+      const response = await fetch('/api/assistant', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          currentData: menuData,
+          prompt: "Überarbeite alle Gerichte in dieser Speisekarte und hebe die Detailstufe auf 'Premium' an. Formuliere die Beschreibungen extrem appetitanregend, hochklassig und professionell. Verändere keine Preise oder Zutaten, sondern nur die werbliche Beschreibung."
+        })
+      });
+
+      const result = await response.json();
+      
+      if (!response.ok || !result.success) {
+        throw new Error(result.error?.message || "Fehler bei der Server-Kommunikation");
+      }
+      
+      setMenuData(result.data);
+      addNotification("Texte wurden auf Premium-Niveau angehoben!", "success");
+    } catch (err: any) {
+      const errorMessage = err.message || "Unbekannter Fehler aufgetreten.";
+      if (errorMessage.includes("429") || errorMessage.includes("Rate-Limit")) {
+        setError("Die KI ist derzeit überlastet. Bitte warte einen Moment und versuche es erneut.");
+      } else {
+        setError(`Upgrade Fehler: ${errorMessage}. Bitte versuche es noch einmal.`);
       }
     } finally {
       setIsAiProcessing(false);
@@ -711,6 +770,14 @@ export default function Home() {
                     <RefreshCw className="mr-2 h-4 w-4" />
                     Neu starten
                   </Button>
+                  <Button 
+                    onClick={handleUpgradeDetail}
+                    disabled={isAiProcessing}
+                    className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white border-none shadow-[0_0_20px_rgba(245,158,11,0.3)]"
+                  >
+                    {isAiProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+                    Texte auf Premium aufwerten
+                  </Button>
                   <Button className="bg-indigo-600 hover:bg-indigo-500 shadow-[0_0_20px_rgba(99,102,241,0.3)]" onClick={handleDownloadPdf}>
                     <Download className="mr-2 h-4 w-4" />
                     PDF Exportieren
@@ -797,6 +864,27 @@ export default function Home() {
 
               {/* Preview Area */}
               <div className="relative group">
+                {/* Category Filter */}
+                <div className="flex gap-2 overflow-x-auto pb-4 mb-2 scrollbar-hide">
+                  <Button 
+                    variant={selectedCategory === null ? "default" : "outline"} 
+                    onClick={() => setSelectedCategory(null)}
+                    className={cn("whitespace-nowrap rounded-full", selectedCategory === null ? "bg-indigo-600" : "border-white/10 bg-black/20 text-zinc-400")}
+                  >
+                    Alle Kategorien
+                  </Button>
+                  {menuData.categories.map(c => (
+                    <Button 
+                      key={c.category}
+                      variant={selectedCategory === c.category ? "default" : "outline"} 
+                      onClick={() => setSelectedCategory(c.category)}
+                      className={cn("whitespace-nowrap rounded-full", selectedCategory === c.category ? "bg-indigo-600" : "border-white/10 bg-black/20 text-zinc-400")}
+                    >
+                      {c.category}
+                    </Button>
+                  ))}
+                </div>
+
                 <div className="absolute -inset-4 bg-gradient-to-r from-indigo-500/20 to-purple-500/20 blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
                 <div className="relative overflow-hidden rounded-3xl">
                   {showComparison ? (
@@ -823,11 +911,11 @@ export default function Home() {
                       >
                         <div className="h-full w-full overflow-y-auto bg-black scrollbar-hide">
                            <MenuPreview 
-                             data={menuData} 
+                             data={selectedCategory ? { ...menuData, categories: menuData.categories.filter(c => c.category === selectedCategory) } : menuData} 
                              theme={theme} 
                              className={cn(containerStyle, "min-h-full")} 
                              editable={isEditable}
-                             onUpdate={setMenuData}
+                             onUpdate={handleMenuUpdate}
                            />
                         </div>
                       </div>
@@ -861,11 +949,11 @@ export default function Home() {
                     </div>
                   ) : (
                     <MenuPreview 
-                      data={menuData} 
+                      data={selectedCategory ? { ...menuData, categories: menuData.categories.filter(c => c.category === selectedCategory) } : menuData} 
                       theme={theme} 
                       className={containerStyle} 
                       editable={isEditable}
-                      onUpdate={setMenuData}
+                      onUpdate={handleMenuUpdate}
                     />
                   )}
                 </div>
