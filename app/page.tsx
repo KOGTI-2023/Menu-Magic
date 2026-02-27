@@ -245,10 +245,6 @@ export default function Home() {
     setStatus("Schritt 1/4: Bilder werden vorbereitet...");
 
     try {
-      if (optimizedImages.length > 10) {
-        throw new Error("Zu viele Seiten (maximal 10 Seiten erlaubt). Bitte teile das PDF auf.");
-      }
-
       setProgress(30);
       setStatus("Schritt 2/4: KI-Analyse wird gestartet (Server)...");
       
