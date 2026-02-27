@@ -97,15 +97,24 @@ export default function Home() {
     setIsAiProcessing(true);
     setError(null);
     try {
-      const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
-      if (!apiKey) {
-        throw new Error("Gemini API-Schlüssel fehlt.");
+      const response = await fetch('/api/assistant', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          currentData: menuData,
+          prompt: aiCommand
+        })
+      });
+
+      const result = await response.json();
+      
+      if (!response.ok || !result.success) {
+        throw new Error(result.error?.message || "Fehler bei der Server-Kommunikation");
       }
       
-      const { updateMenuData } = await import("@/lib/gemini");
-      const updatedData = await updateMenuData(menuData, aiCommand, apiKey);
-      setMenuData(updatedData);
+      setMenuData(result.data);
       setAiCommand("");
+      addNotification("Design erfolgreich angepasst!", "success");
     } catch (err: any) {
       setError(`KI-Assistent Fehler: ${err.message}`);
     } finally {
@@ -173,20 +182,26 @@ export default function Home() {
         throw new Error("Zu viele Seiten (maximal 10 Seiten erlaubt). Bitte teile das PDF auf.");
       }
 
-      const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
-      if (!apiKey) {
-        throw new Error("Gemini API-Schlüssel fehlt. Bitte in den Umgebungsvariablen konfigurieren.");
-      }
-
       setProgress(30);
-      setStatus("Schritt 2/4: KI-Analyse wird gestartet...");
+      setStatus("Schritt 2/4: KI-Analyse wird gestartet (Server)...");
       
-      const data = await extractMenuData(
-        optimizedImages, 
-        model, 
-        apiKey, 
-        detailLevel
-      );
+      const response = await fetch('/api/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          images: optimizedImages,
+          model,
+          detailLevel
+        })
+      });
+
+      const result = await response.json();
+      
+      if (!response.ok || !result.success) {
+        throw new Error(result.error?.message || "Fehler bei der Server-Kommunikation");
+      }
+      
+      const data = result.data;
       
       setProgress(70);
       setStatus("Schritt 3/4: Daten werden validiert...");
