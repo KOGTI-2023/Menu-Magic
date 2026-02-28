@@ -63,13 +63,20 @@ export async function withRetry<T>(
       return await fn();
     } catch (error: any) {
       lastError = error;
+      const errorMessage = error?.message?.toLowerCase() || "";
+      const statusCode = error?.status || error?.response?.status;
+      
       const isRetryable = 
-        error.message?.includes("429") || 
-        error.message?.includes("500") || 
-        error.message?.includes("503") ||
-        error.message?.includes("quota") ||
-        error.message?.includes("rate limit") ||
-        error.message?.includes("timeout");
+        statusCode === 429 || 
+        statusCode === 500 || 
+        statusCode === 503 ||
+        errorMessage.includes("429") || 
+        errorMessage.includes("500") || 
+        errorMessage.includes("503") ||
+        errorMessage.includes("quota") ||
+        errorMessage.includes("rate limit") ||
+        errorMessage.includes("timeout") ||
+        errorMessage.includes("overloaded");
 
       if (!isRetryable || i === retries - 1) {
         throw error;

@@ -318,16 +318,24 @@ export async function updateMenuData(
   const ai = new GoogleGenAI({ apiKey });
   
   const prompt = {
-    text: `Du bist ein professioneller KI-Assistent für Speisekarten-Design. 
-    Hier ist die aktuelle Speisekarte als JSON:
-    ${JSON.stringify(currentData)}
-    
-    Der Benutzer möchte folgende Änderung vornehmen:
-    "${promptText}"
-    
-    Wende die Änderung auf das JSON an und gib das aktualisierte JSON zurück.
-    Behalte alle anderen Daten bei, die nicht von der Änderung betroffen sind.
-    Antworte AUSSCHLIESSLICH mit einem validen JSON-Objekt, das exakt dem Schema entspricht. Keine Markdown-Formatierung (\`\`\`json) um das JSON herum.`
+    text: `Du bist ein professioneller KI-Assistent für Speisekarten-Design. Deine Aufgabe ist es, eine bestehende Speisekarte im JSON-Format basierend auf Benutzeranweisungen zu aktualisieren.
+
+<CONSTRAINTS>
+1. Behalte alle Daten bei, die nicht explizit von der Änderung betroffen sind.
+2. Ändere nur die Felder, die durch den Benutzerbefehl impliziert werden.
+3. Antworte AUSSCHLIESSLICH mit einem validen JSON-Objekt.
+4. Verwende KEINE Markdown-Formatierung (wie \`\`\`json) in deiner Antwort.
+</CONSTRAINTS>
+
+<CURRENT_MENU>
+${JSON.stringify(currentData)}
+</CURRENT_MENU>
+
+<USER_COMMAND>
+${promptText}
+</USER_COMMAND>
+
+Generiere nun das aktualisierte JSON-Objekt:`
   };
 
   const config: any = {
@@ -425,7 +433,7 @@ export async function updateMenuData(
 
   const executeUpdate = async () => {
     const response: GenerateContentResponse = await ai.models.generateContent({
-      model: "gemini-3.1-pro-preview",
+      model: "gemini-3-flash-preview",
       contents: { parts: [prompt] },
       config
     });

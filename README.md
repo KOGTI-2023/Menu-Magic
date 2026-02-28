@@ -18,7 +18,7 @@ Menu Magic ist eine smarte Web-App, die schlecht gescannte PDF-Speisekarten in h
 *   **Frontend:** Next.js 15 (App Router), React, Tailwind CSS, motion (Framer Motion)
 *   **Backend:** Next.js API Routes (`/api/analyze`, `/api/assistant`)
 *   **PDF-Verarbeitung:** pdfjs-dist, html2pdf.js
-*   **KI-Integration:** @google/genai (Gemini 3.1 Pro)
+*   **KI-Integration:** @google/genai (Gemini 3.1 Pro Preview für Extraktion, Gemini 3 Flash Preview für Assistenz)
 *   **Observability:** Strukturiertes Logging mit anpassbaren Logleveln (`lib/logger.ts`).
 
 ## ⚙️ Setup & Installation

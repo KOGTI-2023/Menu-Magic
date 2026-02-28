@@ -9,7 +9,8 @@ Der Prozess ist in vier Hauptphasen unterteilt:
 1.  **Ingestion (Upload):** PDF-Dateien werden im Browser empfangen und in hochauflösende Bilder umgewandelt.
 2.  **Optimization (Vorbereitung):** Der Benutzer kann Bildparameter (Deskew, Grayscale, Rotation) anpassen, um die OCR-Qualität zu maximieren.
 3.  **Intelligence (KI-Analyse):**
-    *   **Gemini 3.1 Pro** analysiert die Bilder.
+    *   **Gemini 3.1 Pro Preview** analysiert die Bilder für maximale Qualität bei der Extraktion.
+    *   **Gemini 3 Flash Preview** übernimmt schnelle, textbasierte Design-Updates.
     *   **Original-First Logik:** Entscheidung zwischen `Repair` (Restauration) oder `Recreate` (Neuerstellung).
     *   **Strukturelle Extraktion:** Umwandlung von Bilddaten in ein valides JSON-Schema.
 4.  **Interaction & Export:**
