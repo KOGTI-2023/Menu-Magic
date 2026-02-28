@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { updateMenuData } from '@/lib/gemini';
+import { updateMenuData } from '@/lib/menu-assistant';
 import { createErrorResponse } from '@/lib/error-handler';
 import { logger } from '@/lib/logger';
 import crypto from 'crypto';
