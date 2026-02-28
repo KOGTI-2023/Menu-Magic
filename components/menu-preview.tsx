@@ -12,9 +12,10 @@ interface MenuPreviewProps {
   className?: string;
   editable?: boolean;
   onUpdate?: (newData: MenuData) => void;
+  showRepairMetadata?: boolean;
 }
 
-export const MenuPreview = memo(({ data, theme, className, editable, onUpdate }: MenuPreviewProps) => {
+export const MenuPreview = memo(({ data, theme, className, editable, onUpdate, showRepairMetadata }: MenuPreviewProps) => {
   const handleUpdate = (path: string, value: any) => {
     if (!onUpdate) return;
     const newData = JSON.parse(JSON.stringify(data));
@@ -144,7 +145,20 @@ export const MenuPreview = memo(({ data, theme, className, editable, onUpdate }:
                             </button>
                           </div>
                         )}
-                        <div className="flex justify-between items-baseline mb-2">
+                        <div className="flex justify-between items-baseline mb-2 relative">
+                          {showRepairMetadata && item.repairMetadata && (
+                            <div className="absolute -top-6 left-0 right-0 flex justify-between items-center text-[9px] font-mono bg-black/80 text-white px-2 py-1 rounded shadow-lg z-10">
+                              <span className={item.repairMetadata.wasRepaired ? "text-amber-400" : "text-emerald-400"}>
+                                {item.repairMetadata.wasRepaired ? "Repariert" : "Original"}
+                              </span>
+                              <span className="opacity-70">Konfidenz: {(item.repairMetadata.confidence * 100).toFixed(0)}%</span>
+                              {item.repairMetadata.originalText && (
+                                <span className="opacity-50 truncate max-w-[150px]" title={item.repairMetadata.originalText}>
+                                  OCR: {item.repairMetadata.originalText}
+                                </span>
+                              )}
+                            </div>
+                          )}
                           <div className="flex items-baseline">
                             {item.number && (
                               <span 
@@ -258,7 +272,20 @@ export const MenuPreview = memo(({ data, theme, className, editable, onUpdate }:
                   <div className="grid gap-8">
                     {category.items.map((item, itemIdx) => (
                       <div key={itemIdx} className="flex flex-col">
-                        <div className="flex justify-between items-baseline mb-2">
+                        <div className="flex justify-between items-baseline mb-2 relative">
+                          {showRepairMetadata && item.repairMetadata && (
+                            <div className="absolute -top-6 left-0 right-0 flex justify-between items-center text-[9px] font-mono bg-black/80 text-white px-2 py-1 rounded shadow-lg z-10">
+                              <span className={item.repairMetadata.wasRepaired ? "text-amber-400" : "text-emerald-400"}>
+                                {item.repairMetadata.wasRepaired ? "Repariert" : "Original"}
+                              </span>
+                              <span className="opacity-70">Konfidenz: {(item.repairMetadata.confidence * 100).toFixed(0)}%</span>
+                              {item.repairMetadata.originalText && (
+                                <span className="opacity-50 truncate max-w-[150px]" title={item.repairMetadata.originalText}>
+                                  OCR: {item.repairMetadata.originalText}
+                                </span>
+                              )}
+                            </div>
+                          )}
                           <h3 className="text-xl font-bold uppercase tracking-wide">
                             {item.name}
                             {item.dietary && item.dietary.length > 0 && (
@@ -373,7 +400,20 @@ export const MenuPreview = memo(({ data, theme, className, editable, onUpdate }:
                   <div className="grid gap-x-12 gap-y-8 md:grid-cols-2">
                     {category.items.map((item, itemIdx) => (
                       <div key={itemIdx} className="flex flex-col">
-                        <div className="flex justify-between items-baseline mb-2">
+                        <div className="flex justify-between items-baseline mb-2 relative">
+                          {showRepairMetadata && item.repairMetadata && (
+                            <div className="absolute -top-6 left-0 right-0 flex justify-between items-center text-[9px] font-mono bg-black/80 text-white px-2 py-1 rounded shadow-lg z-10">
+                              <span className={item.repairMetadata.wasRepaired ? "text-amber-400" : "text-emerald-400"}>
+                                {item.repairMetadata.wasRepaired ? "Repariert" : "Original"}
+                              </span>
+                              <span className="opacity-70">Konfidenz: {(item.repairMetadata.confidence * 100).toFixed(0)}%</span>
+                              {item.repairMetadata.originalText && (
+                                <span className="opacity-50 truncate max-w-[150px]" title={item.repairMetadata.originalText}>
+                                  OCR: {item.repairMetadata.originalText}
+                                </span>
+                              )}
+                            </div>
+                          )}
                           <h3 className="text-base font-medium">
                             {item.name}
                             {item.dietary && item.dietary.length > 0 && (
@@ -652,7 +692,20 @@ export const MenuPreview = memo(({ data, theme, className, editable, onUpdate }:
                   <div className="grid gap-8 md:grid-cols-2">
                     {category.items.map((item, itemIdx) => (
                       <div key={itemIdx} className="flex flex-col">
-                        <div className="flex justify-between items-baseline mb-2">
+                        <div className="flex justify-between items-baseline mb-2 relative">
+                          {showRepairMetadata && item.repairMetadata && (
+                            <div className="absolute -top-6 left-0 right-0 flex justify-between items-center text-[9px] font-mono bg-black/80 text-white px-2 py-1 rounded shadow-lg z-10">
+                              <span className={item.repairMetadata.wasRepaired ? "text-amber-400" : "text-emerald-400"}>
+                                {item.repairMetadata.wasRepaired ? "Repariert" : "Original"}
+                              </span>
+                              <span className="opacity-70">Konfidenz: {(item.repairMetadata.confidence * 100).toFixed(0)}%</span>
+                              {item.repairMetadata.originalText && (
+                                <span className="opacity-50 truncate max-w-[150px]" title={item.repairMetadata.originalText}>
+                                  OCR: {item.repairMetadata.originalText}
+                                </span>
+                              )}
+                            </div>
+                          )}
                           <h3 className="text-xl font-bold uppercase tracking-wide text-[#f3e5ab]">
                             {item.name}
                           </h3>
@@ -837,7 +890,20 @@ export const MenuPreview = memo(({ data, theme, className, editable, onUpdate }:
                   <div className="grid gap-10">
                     {category.items.map((item, itemIdx) => (
                       <div key={itemIdx} className="flex flex-col group">
-                        <div className="flex justify-between items-baseline mb-2">
+                        <div className="flex justify-between items-baseline mb-2 relative">
+                          {showRepairMetadata && item.repairMetadata && (
+                            <div className="absolute -top-6 left-0 right-0 flex justify-between items-center text-[9px] font-mono bg-black/80 text-white px-2 py-1 rounded shadow-lg z-10">
+                              <span className={item.repairMetadata.wasRepaired ? "text-amber-400" : "text-emerald-400"}>
+                                {item.repairMetadata.wasRepaired ? "Repariert" : "Original"}
+                              </span>
+                              <span className="opacity-70">Konfidenz: {(item.repairMetadata.confidence * 100).toFixed(0)}%</span>
+                              {item.repairMetadata.originalText && (
+                                <span className="opacity-50 truncate max-w-[150px]" title={item.repairMetadata.originalText}>
+                                  OCR: {item.repairMetadata.originalText}
+                                </span>
+                              )}
+                            </div>
+                          )}
                           <div className="flex items-baseline">
                             {item.number && (
                               <span className="font-medium text-amber-700/80 mr-4 w-8 text-right font-sans text-sm">{item.number}</span>

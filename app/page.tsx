@@ -36,6 +36,7 @@ import { convertPdfToImages, OptimizationOptions } from "@/lib/pdf-utils";
 import { logger } from "@/lib/logger";
 import { extractMenuData, MenuData } from "@/lib/gemini";
 import { MenuPreview, MenuTheme } from "@/components/menu-preview";
+import { CostTracker, TokenUsage } from "@/components/cost-tracker";
 import { cn } from "@/lib/utils";
 
 type Step = "UPLOAD" | "OPTIMIZE" | "PROCESS" | "RESULT";
@@ -54,6 +55,7 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [optimizedImages, setOptimizedImages] = useState<string[]>([]);
   const [showComparison, setShowComparison] = useState(false);
+  const [showRepairMetadata, setShowRepairMetadata] = useState(false);
   const [optimizationOptions, setOptimizationOptions] = useState<OptimizationOptions>({
     intensity: 'medium',
     deskew: true,
@@ -66,6 +68,9 @@ export default function Home() {
   const [sliderPosition, setSliderPosition] = useState(50);
   const [isEditable, setIsEditable] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [thinkingLevel, setThinkingLevel] = useState<"FAST" | "BALANCED" | "MAX">("BALANCED");
+  const [lastUsage, setLastUsage] = useState<TokenUsage>({ promptTokenCount: 0, candidatesTokenCount: 0, totalTokenCount: 0 });
+  const [sessionUsage, setSessionUsage] = useState<TokenUsage>({ promptTokenCount: 0, candidatesTokenCount: 0, totalTokenCount: 0 });
   const [notifications, setNotifications] = useState<{ id: string; message: string; type: 'info' | 'error' | 'success' }[]>([]);
 
   const addNotification = useCallback((message: string, type: 'info' | 'error' | 'success' = 'info') => {
@@ -128,7 +133,8 @@ export default function Home() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           currentData: menuData,
-          prompt: aiCommand
+          prompt: aiCommand,
+          thinkingLevel: "BALANCED" // Assistant uses moderate reasoning
         })
       });
 
@@ -136,6 +142,15 @@ export default function Home() {
       
       if (!response.ok || !result.success) {
         throw new Error(result.error?.message || "Fehler bei der Server-Kommunikation");
+      }
+      
+      if (result.usage) {
+        setLastUsage(result.usage);
+        setSessionUsage(prev => ({
+          promptTokenCount: prev.promptTokenCount + (result.usage.promptTokenCount || 0),
+          candidatesTokenCount: prev.candidatesTokenCount + (result.usage.candidatesTokenCount || 0),
+          totalTokenCount: prev.totalTokenCount + (result.usage.totalTokenCount || 0)
+        }));
       }
       
       setMenuData(result.data);
@@ -173,6 +188,15 @@ export default function Home() {
       
       if (!response.ok || !result.success) {
         throw new Error(result.error?.message || "Fehler bei der Server-Kommunikation");
+      }
+      
+      if (result.usage) {
+        setLastUsage(result.usage);
+        setSessionUsage(prev => ({
+          promptTokenCount: prev.promptTokenCount + (result.usage.promptTokenCount || 0),
+          candidatesTokenCount: prev.candidatesTokenCount + (result.usage.candidatesTokenCount || 0),
+          totalTokenCount: prev.totalTokenCount + (result.usage.totalTokenCount || 0)
+        }));
       }
       
       setMenuData(result.data);
@@ -254,7 +278,8 @@ export default function Home() {
         body: JSON.stringify({
           images: optimizedImages,
           model,
-          detailLevel
+          detailLevel,
+          thinkingLevel
         })
       });
 
@@ -262,6 +287,15 @@ export default function Home() {
       
       if (!response.ok || !result.success) {
         throw new Error(result.error?.message || "Fehler bei der Server-Kommunikation");
+      }
+      
+      if (result.usage) {
+        setLastUsage(result.usage);
+        setSessionUsage(prev => ({
+          promptTokenCount: prev.promptTokenCount + (result.usage.promptTokenCount || 0),
+          candidatesTokenCount: prev.candidatesTokenCount + (result.usage.candidatesTokenCount || 0),
+          totalTokenCount: prev.totalTokenCount + (result.usage.totalTokenCount || 0)
+        }));
       }
       
       const data = result.data;
@@ -340,6 +374,8 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-[#050505] text-zinc-100 selection:bg-indigo-500/30 selection:text-indigo-200 overflow-x-hidden">
+      <CostTracker usage={lastUsage} sessionUsage={sessionUsage} isProcessing={isProcessing || isAiProcessing} />
+      
       {/* Notifications */}
       <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-3">
         <AnimatePresence>
@@ -539,7 +575,7 @@ export default function Home() {
                     <div className="space-y-4 pt-4 border-t border-white/5">
                       <div className="space-y-2">
                         <div className="flex items-center justify-between">
-                          <Label className="text-zinc-300">Manuelle Drehung (Deskew)</Label>
+                          <Label className="text-zinc-300">Manuelle Drehung (Rotation)</Label>
                           <span className="text-xs text-zinc-500">{optimizationOptions.rotationAngle}°</span>
                         </div>
                         <input 
@@ -553,7 +589,7 @@ export default function Home() {
                         />
                       </div>
                       <div className="flex items-center justify-between">
-                        <Label className="text-zinc-300">Begradigen</Label>
+                        <Label className="text-zinc-300">Automatische Grundlinienkorrektur (Deskew)</Label>
                         <div 
                           className={cn("w-12 h-6 rounded-full p-1 cursor-pointer transition-colors", optimizationOptions.deskew ? "bg-emerald-500" : "bg-zinc-800")}
                           onClick={() => setOptimizationOptions(prev => ({ ...prev, deskew: !prev.deskew }))}
@@ -570,6 +606,25 @@ export default function Home() {
                           <div className={cn("w-4 h-4 bg-white rounded-full transition-transform", optimizationOptions.grayscale ? "translate-x-6" : "translate-x-0")} />
                         </div>
                       </div>
+                    </div>
+
+                    <div className="space-y-4 pt-4 border-t border-white/5">
+                      <Label className="text-zinc-300">KI-Denktiefe (Reasoning)</Label>
+                      <Select value={thinkingLevel} onValueChange={(v: any) => setThinkingLevel(v)}>
+                        <SelectTrigger className="bg-black/40 border-white/5 text-zinc-300">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="bg-zinc-900 border-white/10 text-zinc-300">
+                          <SelectItem value="FAST">Fast (Schnell, geringe Kosten)</SelectItem>
+                          <SelectItem value="BALANCED">Balanced (Ausgewogen, Standard)</SelectItem>
+                          <SelectItem value="MAX">Max (Tiefgreifende Struktur-Analyse)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <p className="text-[10px] text-zinc-500 leading-tight">
+                        {thinkingLevel === 'FAST' && 'Optimiert für Geschwindigkeit. Keine tiefgehende Rekonstruktion.'}
+                        {thinkingLevel === 'BALANCED' && 'Gute Balance aus Geschwindigkeit und Genauigkeit.'}
+                        {thinkingLevel === 'MAX' && 'Maximale Präzision. Löst komplexe Layouts auf, benötigt aber mehr Zeit und Tokens.'}
+                      </p>
                     </div>
 
                     <div className="pt-6 space-y-3">
@@ -756,6 +811,17 @@ export default function Home() {
                     variant="outline" 
                     className={cn(
                       "border-white/10 bg-white/5 text-zinc-300 hover:bg-white/10",
+                      showRepairMetadata && "bg-emerald-500/20 border-emerald-500/50 text-emerald-300"
+                    )}
+                    onClick={() => setShowRepairMetadata(!showRepairMetadata)}
+                  >
+                    <ShieldCheck className="mr-2 h-4 w-4" />
+                    Reparatur-Infos
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    className={cn(
+                      "border-white/10 bg-white/5 text-zinc-300 hover:bg-white/10",
                       showComparison && "bg-indigo-500/20 border-indigo-500/50 text-indigo-300"
                     )}
                     onClick={() => setShowComparison(!showComparison)}
@@ -913,6 +979,7 @@ export default function Home() {
                              className={cn(containerStyle, "min-h-full")} 
                              editable={isEditable}
                              onUpdate={handleMenuUpdate}
+                             showRepairMetadata={showRepairMetadata}
                            />
                         </div>
                       </div>
@@ -951,6 +1018,7 @@ export default function Home() {
                       className={containerStyle} 
                       editable={isEditable}
                       onUpdate={handleMenuUpdate}
+                      showRepairMetadata={showRepairMetadata}
                     />
                   )}
                 </div>

@@ -17,6 +17,11 @@ export interface MenuItem {
   allergens?: string[];
   dietary?: string[];
   boundingBox?: { x: number, y: number, width: number, height: number };
+  repairMetadata?: {
+    wasRepaired: boolean;
+    confidence: number;
+    originalText?: string;
+  };
 }
 
 export interface MenuCategory {
@@ -51,8 +56,9 @@ export async function extractMenuData(
   base64Images: string[],
   modelName: string,
   apiKey: string,
-  detailLevel: string = "standard"
-): Promise<MenuData> {
+  detailLevel: string = "standard",
+  thinkingLevel: "FAST" | "BALANCED" | "MAX" = "BALANCED"
+): Promise<{ data: MenuData, usage: any }> {
   const ai = new GoogleGenAI({ apiKey });
   
   const parts = base64Images.map(base64 => ({
@@ -63,6 +69,16 @@ export async function extractMenuData(
   }));
 
   let detailInstruction = "";
+  let reasoningInstruction = "";
+
+  if (thinkingLevel === "FAST") {
+    reasoningInstruction = "Führe eine schnelle, oberflächliche Analyse durch. Vermeide tiefgehende strukturelle Rekonstruktion. Optimiere auf Geschwindigkeit und geringen Token-Verbrauch.";
+  } else if (thinkingLevel === "MAX") {
+    reasoningInstruction = "Führe eine extrem detaillierte, mehrstufige strukturelle Validierung durch. Löse Mehrdeutigkeiten im Layout auf. Führe semantisches Merging über mehrere Seiten hinweg durch. Normalisiere inkonsistente Formatierungen und Interpunktionen. Rekonstruiere logische Menüabschnitte präzise.";
+  } else {
+    reasoningInstruction = "Führe eine strukturierte, ausgewogene Analyse durch. Achte auf korrekte Zuordnung von Preisen und Beschreibungen.";
+  }
+
   if (detailLevel === "high") {
     detailInstruction = "Achte auf eine professionelle, hochklassige und ansprechende Präsentation. Formuliere die Beschreibungen leicht um, sodass sie appetitanregender und hochwertiger klingen, ohne die Fakten zu verfälschen.";
   } else if (detailLevel === "premium") {
@@ -88,9 +104,11 @@ export async function extractMenuData(
     4. Versuche für jeden Artikel eine grobe 'boundingBox' (x, y, width, height in Prozent 0-100) zu schätzen, um die relative Position zu erhalten.
     5. Erfasse am Ende der Speisekarte die Legende für Zusatzstoffe und Allergene im 'footer'.
     6. Korrigiere OCR-Fehler (z.B. entferne überflüssige Satzzeichen, doppelte Punkte). Formatiere Preise einheitlich.
-    7. ${detailInstruction}
-    8. Antworte AUSSCHLIESSLICH mit einem validen JSON-Objekt, das exakt dem geforderten Schema entspricht. Keine Markdown-Formatierung (\`\`\`json) um das JSON herum.
-    9. Antworte komplett auf Deutsch.`
+    7. Fülle für jeden Artikel das 'repairMetadata' Objekt aus, um zu dokumentieren, ob und wie stark der Text korrigiert wurde.
+    8. ${detailInstruction}
+    9. ${reasoningInstruction}
+    10. Antworte AUSSCHLIESSLICH mit einem validen JSON-Objekt, das exakt dem geforderten Schema entspricht. Keine Markdown-Formatierung (\`\`\`json) um das JSON herum.
+    11. Antworte komplett auf Deutsch.`
   };
 
   const isPro = modelName.includes('pro');
@@ -178,6 +196,14 @@ export async function extractMenuData(
                         width: { type: Type.NUMBER },
                         height: { type: Type.NUMBER }
                       }
+                    },
+                    repairMetadata: {
+                      type: Type.OBJECT,
+                      properties: {
+                        wasRepaired: { type: Type.BOOLEAN, description: "Wurde dieser Eintrag durch die KI repariert/korrigiert?" },
+                        confidence: { type: Type.NUMBER, description: "Konfidenz der Erkennung (0.0 bis 1.0)" },
+                        originalText: { type: Type.STRING, description: "Ursprünglicher OCR-Text vor der Reparatur" }
+                      }
                     }
                   },
                   required: ["name", "prices"]
@@ -199,7 +225,7 @@ export async function extractMenuData(
     }
   };
 
-  if (isPro) {
+  if (isPro && thinkingLevel === "MAX") {
     config.thinkingConfig = { thinkingLevel: "HIGH" };
   }
 
@@ -231,7 +257,7 @@ export async function extractMenuData(
       try {
         const parsedData = JSON.parse(text) as MenuData;
         logger.info(`[${requestId}] Successfully parsed JSON.`);
-        return parsedData;
+        return { data: parsedData, usage: response.usageMetadata };
       } catch (parseError) {
         logger.error(`[${requestId}] JSON Parse Error:`, parseError);
         throw new Error("Ungültiges JSON-Format in der API-Antwort.");
@@ -255,27 +281,30 @@ export async function extractMenuData(
     
     // Fallback: Basic data structure if everything fails
     return {
-      restaurantName: "Speisekarte (Wiederhergestellt)",
-      processingDecision: 'Recreate',
-      originalStyle: {
-        fontFamily: 'sans-serif',
-        primaryColor: '#000000',
-        backgroundColor: '#ffffff',
-        textColor: '#333333',
-        accentColor: '#666666'
+      data: {
+        restaurantName: "Speisekarte (Wiederhergestellt)",
+        processingDecision: 'Recreate',
+        originalStyle: {
+          fontFamily: 'sans-serif',
+          primaryColor: '#000000',
+          backgroundColor: '#ffffff',
+          textColor: '#333333',
+          accentColor: '#666666'
+        },
+        categories: [
+          {
+            category: "Fehler bei der Analyse",
+            items: [
+              {
+                name: "Analyse fehlgeschlagen",
+                description: "Die KI konnte die Daten nicht extrahieren. Bitte versuche es mit einem schärferen Bild erneut.",
+                prices: [{ value: "0,00 €" }]
+              }
+            ]
+          }
+        ]
       },
-      categories: [
-        {
-          category: "Fehler bei der Analyse",
-          items: [
-            {
-              name: "Analyse fehlgeschlagen",
-              description: "Die KI konnte die Daten nicht extrahieren. Bitte versuche es mit einem schärferen Bild erneut.",
-              prices: [{ value: "0,00 €" }]
-            }
-          ]
-        }
-      ]
+      usage: null
     };
   }
 }
@@ -283,8 +312,9 @@ export async function extractMenuData(
 export async function updateMenuData(
   currentData: MenuData,
   promptText: string,
-  apiKey: string
-): Promise<MenuData> {
+  apiKey: string,
+  thinkingLevel: "FAST" | "BALANCED" | "MAX" = "BALANCED"
+): Promise<{ data: MenuData, usage: any }> {
   const ai = new GoogleGenAI({ apiKey });
   
   const prompt = {
@@ -364,6 +394,14 @@ export async function updateMenuData(
                         width: { type: Type.NUMBER },
                         height: { type: Type.NUMBER }
                       }
+                    },
+                    repairMetadata: {
+                      type: Type.OBJECT,
+                      properties: {
+                        wasRepaired: { type: Type.BOOLEAN },
+                        confidence: { type: Type.NUMBER },
+                        originalText: { type: Type.STRING }
+                      }
                     }
                   },
                   required: ["name", "prices"]
@@ -401,7 +439,7 @@ export async function updateMenuData(
 
     try {
       const parsedData = JSON.parse(text) as MenuData;
-      return parsedData;
+      return { data: parsedData, usage: response.usageMetadata };
     } catch (parseError) {
       throw new Error("Fehler beim Verarbeiten der API-Antwort (ungültiges JSON).");
     }
