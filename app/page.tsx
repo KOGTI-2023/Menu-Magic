@@ -484,9 +484,9 @@ export default function Home() {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent className="bg-zinc-900 border-white/10 text-zinc-300">
-                          <SelectItem value="gemini-2.5-flash-lite">Flash Lite (Schnell)</SelectItem>
-                          <SelectItem value="gemini-2.5-flash">Flash (Ausgewogen)</SelectItem>
-                          <SelectItem value="gemini-3.1-pro-preview">Pro (Beste Qualität)</SelectItem>
+                          <SelectItem value="gemini-2.5-flash-lite" description="Sehr schnell, geringere Kosten. Ideal für einfache Layouts.">Flash Lite (Schnell)</SelectItem>
+                          <SelectItem value="gemini-2.5-flash" description="Gute Balance aus Geschwindigkeit und Qualität.">Flash (Ausgewogen)</SelectItem>
+                          <SelectItem value="gemini-3.1-pro-preview" description="Maximale Qualität und Detailtreue. Empfohlen für komplexe Karten.">Pro (Beste Qualität)</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
