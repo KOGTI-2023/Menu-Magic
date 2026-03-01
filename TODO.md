@@ -21,4 +21,5 @@
 
 - [ ] **Drag & Drop Reordering:** Implement a visual drag-and-drop interface for reordering categories and menu items in the preview.
 - [ ] **Theme Builder:** Create a visual theme builder where users can pick colors, fonts, and spacing without relying solely on the AI assistant.
-- [ ] **Mobile Optimization:** Further refine the mobile experience, especially for the complex "Before/After" slider and the inline editing features.
+- [x] **Mobile Optimization:** Further refine the mobile experience, especially for the complex "Before/After" slider and the inline editing features.
+- [x] **Responsive Layout:** Improved the initial upload screen to be more compact and fit within the viewport without scrolling.
