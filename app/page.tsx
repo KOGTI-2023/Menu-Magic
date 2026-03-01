@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useCallback, useEffect, useRef } from "react";
+import Image from "next/image";
 import { useDropzone } from "react-dropzone";
 import { 
   UploadCloud, 
@@ -408,38 +409,38 @@ export default function Home() {
         <div className="absolute top-[20%] right-[10%] w-[30%] h-[30%] bg-purple-600/10 blur-[120px] rounded-full" />
       </div>
 
-      <main className="relative z-10 p-6 md:p-12 lg:p-24 max-w-7xl mx-auto space-y-16">
+      <main className="relative z-10 p-4 md:p-8 lg:p-12 max-w-7xl mx-auto min-h-screen flex flex-col justify-center gap-8">
         {/* Header */}
         <motion.div 
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-center space-y-6"
+          className="text-center space-y-4"
         >
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 backdrop-blur-md text-sm font-medium text-indigo-300 mb-4">
-            <Sparkles className="h-4 w-4" />
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 backdrop-blur-md text-xs font-medium text-indigo-300 mb-2">
+            <Sparkles className="h-3 w-3" />
             <span>Powered by Gemini 3.1 AI</span>
           </div>
-          <h1 className="text-6xl md:text-8xl font-black tracking-tighter bg-gradient-to-b from-white to-white/40 bg-clip-text text-transparent">
+          <h1 className="text-4xl md:text-6xl font-black tracking-tighter bg-gradient-to-b from-white to-white/40 bg-clip-text text-transparent">
             Menü Magie
           </h1>
-          <p className="text-xl text-zinc-400 max-w-2xl mx-auto font-light leading-relaxed">
+          <p className="text-base md:text-lg text-zinc-400 max-w-2xl mx-auto font-light leading-relaxed">
             Verwandle unleserliche PDF-Scans in professionelle, hochglänzende und druckfertige Speisekarten – mit nur einem Klick.
           </p>
         </motion.div>
 
         {/* Step Indicator */}
-        <div className="flex justify-center items-center gap-4 max-w-md mx-auto">
+        <div className="flex justify-center items-center gap-3 max-w-md mx-auto">
           {(["UPLOAD", "OPTIMIZE", "PROCESS", "RESULT"] as Step[]).map((s, i) => (
             <React.Fragment key={s}>
               <div className={cn(
-                "w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all duration-500",
+                "w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center border-2 transition-all duration-500 text-sm md:text-base",
                 step === s ? "border-indigo-500 bg-indigo-500/20 text-indigo-300 shadow-[0_0_20px_rgba(99,102,241,0.4)]" : 
                 (["UPLOAD", "OPTIMIZE", "PROCESS", "RESULT"].indexOf(step) > i) ? "border-emerald-500 bg-emerald-500/20 text-emerald-400" :
                 "border-zinc-800 bg-zinc-900 text-zinc-600"
               )}>
-                { (["UPLOAD", "OPTIMIZE", "PROCESS", "RESULT"].indexOf(step) > i) ? <CheckCircle2 className="h-6 w-6" /> : i + 1 }
+                { (["UPLOAD", "OPTIMIZE", "PROCESS", "RESULT"].indexOf(step) > i) ? <CheckCircle2 className="h-4 w-4 md:h-5 md:w-5" /> : i + 1 }
               </div>
-              {i < 3 && <div className={cn("h-0.5 w-8 rounded-full", (["UPLOAD", "OPTIMIZE", "PROCESS", "RESULT"].indexOf(step) > i) ? "bg-emerald-500/50" : "bg-zinc-800")} />}
+              {i < 3 && <div className={cn("h-0.5 w-6 md:w-8 rounded-full", (["UPLOAD", "OPTIMIZE", "PROCESS", "RESULT"].indexOf(step) > i) ? "bg-emerald-500/50" : "bg-zinc-800")} />}
             </React.Fragment>
           ))}
         </div>
@@ -454,25 +455,25 @@ export default function Home() {
               className="max-w-2xl mx-auto"
             >
               <Card className="bg-zinc-900/40 backdrop-blur-xl border-white/10 shadow-2xl rounded-3xl overflow-hidden">
-                <CardHeader className="text-center pb-2">
-                  <CardTitle className="text-2xl text-white">Datei hochladen</CardTitle>
-                  <CardDescription className="text-zinc-500">Wähle deine PDF-Speisekarte aus</CardDescription>
+                <CardHeader className="text-center pb-0">
+                  <CardTitle className="text-xl text-white">Datei hochladen</CardTitle>
+                  <CardDescription className="text-zinc-500 text-sm">Wähle deine PDF-Speisekarte aus</CardDescription>
                 </CardHeader>
-                <CardContent className="p-8 space-y-8">
+                <CardContent className="p-6 space-y-6">
                   <div
                     {...getRootProps()}
                     className={cn(
-                      "group relative border-2 border-dashed rounded-2xl p-16 text-center cursor-pointer transition-all duration-500 overflow-hidden",
+                      "group relative border-2 border-dashed rounded-2xl p-10 text-center cursor-pointer transition-all duration-500 overflow-hidden",
                       isDragActive ? "border-indigo-500 bg-indigo-500/10" : "border-zinc-800 hover:border-zinc-700 bg-black/20"
                     )}
                   >
                     <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-emerald-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
                     <input {...getInputProps()} />
-                    <UploadCloud className="mx-auto h-16 w-16 text-zinc-600 group-hover:text-indigo-400 transition-colors mb-6" />
-                    <p className="text-zinc-400 text-lg font-medium group-hover:text-zinc-200 transition-colors">
+                    <UploadCloud className="mx-auto h-12 w-12 text-zinc-600 group-hover:text-indigo-400 transition-colors mb-4" />
+                    <p className="text-zinc-400 text-base font-medium group-hover:text-zinc-200 transition-colors">
                       PDF hierher ziehen oder klicken
                     </p>
-                    <p className="text-zinc-600 text-sm mt-2">Maximal 1 Datei (PDF)</p>
+                    <p className="text-zinc-600 text-xs mt-2">Maximal 1 Datei (PDF)</p>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -917,7 +918,13 @@ export default function Home() {
                     {isAiProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                   </Button>
                 </div>
-                <div className="flex flex-wrap gap-2">
+                {isAiProcessing && (
+                  <div className="flex items-center gap-2 mt-2 text-indigo-400 text-sm animate-pulse">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>KI denkt nach...</span>
+                  </div>
+                )}
+                <div className="flex flex-wrap gap-2 mt-2">
                   <span className="text-xs text-zinc-500">Vorschläge:</span>
                   <button onClick={() => setAiCommand("Preise um 10% erhöhen")} className="text-xs text-indigo-400 hover:underline">Preise +10%</button>
                   <button onClick={() => setAiCommand("Schriftart auf modern ändern")} className="text-xs text-indigo-400 hover:underline">Modernere Schrift</button>
@@ -956,12 +963,14 @@ export default function Home() {
                       <div className="absolute inset-0">
                         <div className="h-full w-full overflow-y-auto p-8 bg-zinc-800 scrollbar-hide">
                           {optimizedImages.map((img, i) => (
-                            <img 
+                            <Image 
                               key={i} 
                               src={`data:image/jpeg;base64,${img}`} 
                               className="w-full mb-8 rounded-lg shadow-xl" 
                               alt={`Original Page ${i + 1}`} 
-                              loading="lazy"
+                              width={800}
+                              height={1131}
+                              style={{ objectFit: 'contain' }}
                             />
                           ))}
                         </div>

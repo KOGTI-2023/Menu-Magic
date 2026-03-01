@@ -16,6 +16,7 @@ export interface MenuItem {
   additives?: string[];
   allergens?: string[];
   dietary?: string[];
+  priority?: 'Hoch' | 'Mittel' | 'Niedrig';
   boundingBox?: { x: number, y: number, width: number, height: number };
   repairMetadata?: {
     wasRepaired: boolean;
@@ -187,6 +188,10 @@ export async function extractMenuData(
                       type: Type.ARRAY,
                       items: { type: Type.STRING },
                       description: "Allergene (meist Buchstaben, z.B. 'a', 'f')"
+                    },
+                    priority: {
+                      type: Type.STRING,
+                      description: "Priorität des Gerichts: 'Hoch', 'Mittel' oder 'Niedrig'"
                     },
                     boundingBox: {
                       type: Type.OBJECT,

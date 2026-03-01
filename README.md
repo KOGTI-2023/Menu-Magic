@@ -9,6 +9,7 @@ Menu Magic ist eine smarte Web-App, die schlecht gescannte PDF-Speisekarten in h
 - **🧠 KI-Restauration (Gemini 3.1 Pro Preview):** Nutzt "Original-First" Logik. Die KI entscheidet zwischen einer direkten Reparatur (Repair) oder einer digitalen Neukonstruktion (Recreate), um maximale Qualität zu garantieren.
 - **🎨 KI-Design-Assistent (Gemini 3 Flash Preview):** Ein interaktiver Begleiter, der auf Text- und Sprachbefehle (Voice-to-Text) reagiert, um das Design anzupassen oder Inhalte zu ändern.
 - **🖌️ Direkt-Editor:** Bearbeite Texte, Preise und Kategorien direkt in der Vorschau. Verschiebe Elemente per Klick für das perfekte Layout.
+- **⭐ Prioritäten-System:** Markiere Menüpunkte mit Prioritäten (Hoch, Mittel, Niedrig), um sie visuell hervorzuheben.
 - **🌈 Farbpaletten-Generator:** Automatische Generierung von 3 passenden Farbpaletten basierend auf dem Stil des Restaurants.
 - **👁️ Vorher/Nachher-Vergleich:** Ein interaktiver Slider ermöglicht den direkten Vergleich zwischen dem Original-Scan und dem optimierten Ergebnis.
 - **🌐 Multi-Export:** Generiert moderne, responsive HTML-Speisekarten und druckfertige PDF-Dokumente.

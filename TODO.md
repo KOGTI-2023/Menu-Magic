@@ -13,6 +13,7 @@
 
 - [ ] **Web Worker for PDF Processing:** Move the `pdfjs-dist` conversion logic to a Web Worker to prevent blocking the main thread during heavy PDF processing.
 - [ ] **Streaming AI Responses:** Implement streaming for the Gemini API responses to show real-time progress of the text extraction and design updates.
+- [x] **next/image Migration:** Migrated `<img>` tags to `next/image` in `app/page.tsx` for optimized image loading.
 - [ ] **Unit and E2E Testing:** Add comprehensive tests using Jest and Cypress/Playwright to ensure reliability of the core extraction and rendering logic.
 - [ ] **Accessibility (a11y):** Improve keyboard navigation, ARIA labels, and screen reader support across the entire application.
 

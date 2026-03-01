@@ -87,6 +87,7 @@ Generiere nun das aktualisierte JSON-Objekt:`
                       type: Type.ARRAY,
                       items: { type: Type.STRING }
                     },
+                    priority: { type: Type.STRING },
                     boundingBox: {
                       type: Type.OBJECT,
                       properties: {

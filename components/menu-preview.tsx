@@ -97,6 +97,18 @@ export const MenuPreview = memo(({ data, theme, className, editable, onUpdate, s
                       >
                         ↓
                       </button>
+                      <button 
+                        onClick={() => {
+                          if (window.confirm("Möchten Sie diese Kategorie wirklich dauerhaft löschen?")) {
+                            const newCats = data.categories.filter((_, i) => i !== idx);
+                            handleUpdate('categories', newCats);
+                          }
+                        }}
+                        className="p-1 bg-red-600 text-white rounded hover:bg-red-500"
+                        title="Kategorie löschen"
+                      >
+                        ✕
+                      </button>
                     </div>
                   )}
                   <h2 
@@ -143,6 +155,34 @@ export const MenuPreview = memo(({ data, theme, className, editable, onUpdate, s
                             >
                               ↓
                             </button>
+                            <button 
+                              onClick={() => {
+                                const priorities: (undefined | 'Hoch' | 'Mittel' | 'Niedrig')[] = [undefined, 'Hoch', 'Mittel', 'Niedrig'];
+                                const currentIdx = priorities.indexOf(item.priority);
+                                const nextPriority = priorities[(currentIdx + 1) % priorities.length];
+                                const newCats = [...data.categories];
+                                newCats[idx].items[itemIdx].priority = nextPriority;
+                                handleUpdate('categories', newCats);
+                              }}
+                              className="p-1 bg-amber-600 text-white rounded hover:bg-amber-500 text-[10px]"
+                              title="Priorität ändern"
+                            >
+                              ★
+                            </button>
+                            <button 
+                              onClick={() => {
+                                if (window.confirm("Möchten Sie diesen Menüpunkt wirklich dauerhaft löschen?")) {
+                                  const newItems = category.items.filter((_, i) => i !== itemIdx);
+                                  const newCats = [...data.categories];
+                                  newCats[idx].items = newItems;
+                                  handleUpdate('categories', newCats);
+                                }
+                              }}
+                              className="p-1 bg-red-600 text-white rounded hover:bg-red-500 text-[10px]"
+                              title="Eintrag löschen"
+                            >
+                              ✕
+                            </button>
                           </div>
                         )}
                         <div className="flex justify-between items-baseline mb-2 relative">
@@ -187,6 +227,16 @@ export const MenuPreview = memo(({ data, theme, className, editable, onUpdate, s
                             >
                               {item.name}
                             </h3>
+                            {item.priority && (
+                              <span className={cn(
+                                "ml-2 px-1.5 py-0.5 text-[10px] uppercase font-bold rounded-sm self-center",
+                                item.priority === 'Hoch' ? "bg-red-500/20 text-red-600" :
+                                item.priority === 'Mittel' ? "bg-amber-500/20 text-amber-600" :
+                                "bg-emerald-500/20 text-emerald-600"
+                              )}>
+                                {item.priority}
+                              </span>
+                            )}
                             {(item.additives || item.allergens) && (
                               <sup className="ml-1 text-[10px] font-normal opacity-70">
                                 ({[...(item.additives || []), ...(item.allergens || [])].join(",")})
@@ -291,6 +341,16 @@ export const MenuPreview = memo(({ data, theme, className, editable, onUpdate, s
                             {item.dietary && item.dietary.length > 0 && (
                               <span className="ml-2 text-xs align-top opacity-70">
                                 ({item.dietary.join(", ")})
+                              </span>
+                            )}
+                            {item.priority && (
+                              <span className={cn(
+                                "ml-2 px-1.5 py-0.5 text-[10px] uppercase font-bold rounded-sm self-center",
+                                item.priority === 'Hoch' ? "bg-red-500/20 text-red-600" :
+                                item.priority === 'Mittel' ? "bg-amber-500/20 text-amber-600" :
+                                "bg-emerald-500/20 text-emerald-600"
+                              )}>
+                                {item.priority}
                               </span>
                             )}
                           </h3>
@@ -422,6 +482,16 @@ export const MenuPreview = memo(({ data, theme, className, editable, onUpdate, s
                               </span>
                             )}
                           </h3>
+                          {item.priority && (
+                            <span className={cn(
+                              "ml-2 px-1.5 py-0.5 text-[10px] uppercase font-bold rounded-sm self-center",
+                              item.priority === 'Hoch' ? "bg-red-500/20 text-red-600" :
+                              item.priority === 'Mittel' ? "bg-amber-500/20 text-amber-600" :
+                              "bg-emerald-500/20 text-emerald-600"
+                            )}>
+                              {item.priority}
+                            </span>
+                          )}
                           <div className="flex flex-col items-end gap-1">
                             {item.prices && item.prices.length > 0 ? (
                               item.prices.map((p, i) => (
@@ -473,6 +543,16 @@ export const MenuPreview = memo(({ data, theme, className, editable, onUpdate, s
                               ({item.dietary.join(", ")})
                             </span>
                           )}
+                          {item.priority && (
+                            <span className={cn(
+                              "ml-2 px-1.5 py-0.5 text-[10px] uppercase font-bold rounded-sm self-center",
+                              item.priority === 'Hoch' ? "bg-red-500/20 text-red-600" :
+                              item.priority === 'Mittel' ? "bg-amber-500/20 text-amber-600" :
+                              "bg-emerald-500/20 text-emerald-600"
+                            )}>
+                              {item.priority}
+                            </span>
+                          )}
                         </h3>
                         {item.description && (
                           <p className="text-sm italic text-[#6b503b] mb-2">
@@ -520,6 +600,16 @@ export const MenuPreview = memo(({ data, theme, className, editable, onUpdate, s
                           <h3 className="text-lg font-medium tracking-wide">
                             {item.name}
                           </h3>
+                          {item.priority && (
+                            <span className={cn(
+                              "ml-2 px-1.5 py-0.5 text-[10px] uppercase font-bold rounded-sm self-center",
+                              item.priority === 'Hoch' ? "bg-red-500/20 text-red-600" :
+                              item.priority === 'Mittel' ? "bg-amber-500/20 text-amber-600" :
+                              "bg-emerald-500/20 text-emerald-600"
+                            )}>
+                              {item.priority}
+                            </span>
+                          )}
                           <span className="text-stone-400">&mdash;</span>
                           <div className="flex flex-col items-center gap-1">
                             {item.prices && item.prices.length > 0 ? (
@@ -576,6 +666,16 @@ export const MenuPreview = memo(({ data, theme, className, editable, onUpdate, s
                           <h3 className="text-lg font-bold text-[#073642] uppercase">
                             {item.name}
                           </h3>
+                          {item.priority && (
+                            <span className={cn(
+                              "ml-2 px-1.5 py-0.5 text-[10px] uppercase font-bold rounded-sm self-center",
+                              item.priority === 'Hoch' ? "bg-red-500/20 text-red-600" :
+                              item.priority === 'Mittel' ? "bg-amber-500/20 text-amber-600" :
+                              "bg-emerald-500/20 text-emerald-600"
+                            )}>
+                              {item.priority}
+                            </span>
+                          )}
                           <div className="flex-grow border-b-2 border-dotted border-[#93a1a1] mx-2 mb-1"></div>
                           <div className="flex flex-col items-end gap-1">
                             {item.prices && item.prices.length > 0 ? (
@@ -709,6 +809,16 @@ export const MenuPreview = memo(({ data, theme, className, editable, onUpdate, s
                           <h3 className="text-xl font-bold uppercase tracking-wide text-[#f3e5ab]">
                             {item.name}
                           </h3>
+                          {item.priority && (
+                            <span className={cn(
+                              "ml-2 px-1.5 py-0.5 text-[10px] uppercase font-bold rounded-sm self-center",
+                              item.priority === 'Hoch' ? "bg-red-500/20 text-red-600" :
+                              item.priority === 'Mittel' ? "bg-amber-500/20 text-amber-600" :
+                              "bg-emerald-500/20 text-emerald-600"
+                            )}>
+                              {item.priority}
+                            </span>
+                          )}
                           <div className="flex-grow border-b border-dotted border-[#d4af37] mx-4 opacity-50"></div>
                           <div className="flex flex-col items-end gap-1">
                             {item.prices && item.prices.length > 0 ? (
@@ -770,6 +880,16 @@ export const MenuPreview = memo(({ data, theme, className, editable, onUpdate, s
                             <h3 className="text-xl font-bold text-slate-900 group-hover:text-pink-500 transition-colors">
                               {item.name}
                             </h3>
+                            {item.priority && (
+                              <span className={cn(
+                                "ml-2 px-1.5 py-0.5 text-[10px] uppercase font-bold rounded-sm self-center",
+                                item.priority === 'Hoch' ? "bg-red-500/20 text-red-600" :
+                                item.priority === 'Mittel' ? "bg-amber-500/20 text-amber-600" :
+                                "bg-emerald-500/20 text-emerald-600"
+                              )}>
+                                {item.priority}
+                              </span>
+                            )}
                             <div className="flex flex-col items-end gap-1">
                               {item.prices && item.prices.length > 0 ? (
                                 item.prices.map((p, i) => (
@@ -829,6 +949,16 @@ export const MenuPreview = memo(({ data, theme, className, editable, onUpdate, s
                           <h3 className="text-xl font-bold text-slate-900">
                             {item.name}
                           </h3>
+                          {item.priority && (
+                            <span className={cn(
+                              "ml-2 px-1.5 py-0.5 text-[10px] uppercase font-bold rounded-sm self-center",
+                              item.priority === 'Hoch' ? "bg-red-500/20 text-red-600" :
+                              item.priority === 'Mittel' ? "bg-amber-500/20 text-amber-600" :
+                              "bg-emerald-500/20 text-emerald-600"
+                            )}>
+                              {item.priority}
+                            </span>
+                          )}
                           <div className="flex flex-col items-end gap-1">
                             {item.prices && item.prices.length > 0 ? (
                               item.prices.map((p, i) => (
@@ -916,6 +1046,16 @@ export const MenuPreview = memo(({ data, theme, className, editable, onUpdate, s
                                 </sup>
                               )}
                             </h3>
+                            {item.priority && (
+                              <span className={cn(
+                                "ml-2 px-1.5 py-0.5 text-[10px] uppercase font-bold rounded-sm self-center",
+                                item.priority === 'Hoch' ? "bg-red-500/20 text-red-600" :
+                                item.priority === 'Mittel' ? "bg-amber-500/20 text-amber-600" :
+                                "bg-emerald-500/20 text-emerald-600"
+                              )}>
+                                {item.priority}
+                              </span>
+                            )}
                           </div>
                           <div className="flex-grow border-b border-dotted border-slate-300 mx-6 opacity-60 group-hover:border-amber-300 transition-colors duration-300"></div>
                           <div className="flex flex-col items-end">
@@ -983,6 +1123,16 @@ export const MenuPreview = memo(({ data, theme, className, editable, onUpdate, s
                                 </sup>
                               )}
                             </h3>
+                            {item.priority && (
+                              <span className={cn(
+                                "ml-2 px-1.5 py-0.5 text-[10px] uppercase font-bold rounded-sm self-center",
+                                item.priority === 'Hoch' ? "bg-red-500/20 text-red-600" :
+                                item.priority === 'Mittel' ? "bg-amber-500/20 text-amber-600" :
+                                "bg-emerald-500/20 text-emerald-600"
+                              )}>
+                                {item.priority}
+                              </span>
+                            )}
                           </div>
                           <div className="flex-grow border-b border-dotted border-gray-400 mx-4 opacity-50"></div>
                           <div className="flex flex-col items-end">
