@@ -42,6 +42,7 @@ import { cn } from "@/lib/utils";
 
 import { ConfirmModal, Warning, Thumbnail, Config } from "@/components/ConfirmModal";
 import { getLocalPresets, saveLocalPreset, getActivePreset } from "@/lib/presets";
+import { IntroSplash } from "@/components/IntroSplash";
 
 type Step = "UPLOAD" | "OPTIMIZE" | "PROCESS" | "RESULT";
 
@@ -85,6 +86,15 @@ export default function Home() {
   const [activePresetName, setActivePresetName] = useState<string | null>(null);
   const [cancelTimeoutId, setCancelTimeoutId] = useState<NodeJS.Timeout | null>(null);
   const [isCancelling, setIsCancelling] = useState(false);
+  const [showIntro, setShowIntro] = useState(true);
+
+  useEffect(() => {
+    // Check if user has already seen the intro this session
+    const hasSeenIntro = sessionStorage.getItem("menuMagicIntroSeen");
+    if (hasSeenIntro) {
+      setShowIntro(false);
+    }
+  }, []);
 
   useEffect(() => {
     const preset = getActivePreset();
@@ -490,9 +500,24 @@ export default function Home() {
     }
   };
 
+  const handleIntroComplete = () => {
+    sessionStorage.setItem("menuMagicIntroSeen", "true");
+    setShowIntro(false);
+  };
+
   return (
     <div className="min-h-screen bg-[#050505] text-zinc-100 selection:bg-indigo-500/30 selection:text-indigo-200 overflow-x-hidden">
-      <CostTracker usage={lastUsage} sessionUsage={sessionUsage} isProcessing={isProcessing || isAiProcessing} />
+      {showIntro && (
+        <IntroSplash 
+          autoPlay={true} 
+          showSkip={true} 
+          onComplete={handleIntroComplete} 
+          durationMs={5000} 
+        />
+      )}
+
+      <div className={cn("transition-opacity duration-1000", !showIntro ? "opacity-100" : "opacity-0")}>
+        <CostTracker usage={lastUsage} sessionUsage={sessionUsage} isProcessing={isProcessing || isAiProcessing} />
       
       {/* Notifications */}
       <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-3">
@@ -1196,23 +1221,24 @@ export default function Home() {
         )}
       </main>
 
-      {/* Footer */}
-      <footer className="relative z-10 py-12 text-center border-t border-white/5">
-        <p className="text-zinc-600 text-sm font-light tracking-widest uppercase">
-          &copy; 2026 Menü Magie &bull; Powered by Google Gemini
-        </p>
-      </footer>
+        {/* Footer */}
+        <footer className="relative z-10 py-12 text-center border-t border-white/5">
+          <p className="text-zinc-600 text-sm font-light tracking-widest uppercase">
+            &copy; 2026 Menü Magie &bull; Powered by Google Gemini
+          </p>
+        </footer>
 
-      <ConfirmModal
-        isOpen={isConfirmModalOpen}
-        onOpenChange={setIsConfirmModalOpen}
-        config={modalConfig}
-        onConfigChange={setModalConfig}
-        warnings={warnings}
-        thumbnails={thumbnails}
-        onConfirm={handleConfirmModal}
-        onCancel={() => setIsConfirmModalOpen(false)}
-      />
+        <ConfirmModal
+          isOpen={isConfirmModalOpen}
+          onOpenChange={setIsConfirmModalOpen}
+          config={modalConfig}
+          onConfigChange={setModalConfig}
+          warnings={warnings}
+          thumbnails={thumbnails}
+          onConfirm={handleConfirmModal}
+          onCancel={() => setIsConfirmModalOpen(false)}
+        />
+      </div>
     </div>
   );
 }

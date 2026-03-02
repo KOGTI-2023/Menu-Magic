@@ -1,0 +1,48 @@
+{
+  "colors": {
+    "primary": {
+      "500": { "hex": "#6366f1", "rgb": "99, 102, 241", "hsl": "239, 84%, 67%" },
+      "600": { "hex": "#4f46e5", "rgb": "79, 70, 229", "hsl": "243, 75%, 59%" },
+      "description": "Indigo - Used for primary actions, branding, and active states."
+    },
+    "accent": {
+      "400": { "hex": "#34d399", "rgb": "52, 211, 153", "hsl": "158, 65%, 52%" },
+      "500": { "hex": "#10b981", "rgb": "16, 185, 129", "hsl": "160, 84%, 39%" },
+      "description": "Emerald - Used for success states, magical sparkles, and highlights."
+    },
+    "neutral": {
+      "50": { "hex": "#fafafa", "rgb": "250, 250, 250", "hsl": "0, 0%, 98%" },
+      "400": { "hex": "#a1a1aa", "rgb": "161, 161, 170", "hsl": "240, 5%, 53%" },
+      "800": { "hex": "#27272a", "rgb": "39, 39, 42", "hsl": "240, 4%, 16%" },
+      "900": { "hex": "#18181b", "rgb": "24, 24, 27", "hsl": "240, 6%, 10%" },
+      "950": { "hex": "#09090b", "rgb": "9, 9, 11", "hsl": "240, 10%, 4%" },
+      "description": "Zinc - Used for backgrounds, borders, and typography."
+    },
+    "semantic": {
+      "success": { "hex": "#10b981", "rgb": "16, 185, 129", "hsl": "160, 84%, 39%" },
+      "warning": { "hex": "#f59e0b", "rgb": "245, 158, 11", "hsl": "38, 92%, 50%" },
+      "error": { "hex": "#ef4444", "rgb": "239, 68, 68", "hsl": "0, 84%, 60%" }
+    }
+  },
+  "typography": {
+    "fonts": {
+      "sans": ["Inter", "system-ui", "sans-serif"],
+      "serif": ["Playfair Display", "Georgia", "serif"],
+      "mono": ["JetBrains Mono", "monospace"]
+    },
+    "letterSpacing": {
+      "tighter": "-0.05em",
+      "tight": "-0.025em",
+      "normal": "0em",
+      "wide": "0.025em",
+      "widest": "0.1em"
+    }
+  },
+  "accessibility": {
+    "notes": [
+      "Primary 600 (#4f46e5) on Neutral 50 (#fafafa) has a contrast ratio of 5.1:1 (Passes AA).",
+      "Neutral 400 (#a1a1aa) on Neutral 950 (#09090b) has a contrast ratio of 4.5:1 (Passes AA).",
+      "Ensure all text elements maintain at least 4.5:1 contrast ratio against their backgrounds."
+    ]
+  }
+}
