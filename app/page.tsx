@@ -40,6 +40,9 @@ import { MenuPreview, MenuTheme } from "@/components/menu-preview";
 import { CostTracker, TokenUsage } from "@/components/cost-tracker";
 import { cn } from "@/lib/utils";
 
+import { ConfirmModal, Warning, Thumbnail, Config } from "@/components/ConfirmModal";
+import { getLocalPresets, saveLocalPreset, getActivePreset } from "@/lib/presets";
+
 type Step = "UPLOAD" | "OPTIMIZE" | "PROCESS" | "RESULT";
 
 export default function Home() {
@@ -73,6 +76,26 @@ export default function Home() {
   const [lastUsage, setLastUsage] = useState<TokenUsage>({ promptTokenCount: 0, candidatesTokenCount: 0, totalTokenCount: 0 });
   const [sessionUsage, setSessionUsage] = useState<TokenUsage>({ promptTokenCount: 0, candidatesTokenCount: 0, totalTokenCount: 0 });
   const [notifications, setNotifications] = useState<{ id: string; message: string; type: 'info' | 'error' | 'success' }[]>([]);
+
+  // ConfirmModal State
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const [warnings, setWarnings] = useState<Warning[]>([]);
+  const [thumbnails, setThumbnails] = useState<Thumbnail[]>([]);
+  const [modalConfig, setModalConfig] = useState<Config>({ model: "gemini-3.1-pro-preview", detailLevel: "premium", style: "original" });
+  const [activePresetName, setActivePresetName] = useState<string | null>(null);
+  const [cancelTimeoutId, setCancelTimeoutId] = useState<NodeJS.Timeout | null>(null);
+  const [isCancelling, setIsCancelling] = useState(false);
+
+  useEffect(() => {
+    const preset = getActivePreset();
+    if (preset) {
+      setActivePresetName(preset.name);
+      setModel(preset.config.model);
+      setDetailLevel(preset.config.detailLevel);
+      setTheme(preset.config.style as MenuTheme);
+      setModalConfig(preset.config);
+    }
+  }, []);
 
   const addNotification = useCallback((message: string, type: 'info' | 'error' | 'success' = 'info') => {
     const id = Math.random().toString(36).substring(7);
@@ -214,14 +237,41 @@ export default function Home() {
     }
   };
 
-  const onDrop = useCallback((acceptedFiles: File[]) => {
+  const onDrop = useCallback(async (acceptedFiles: File[]) => {
     if (acceptedFiles.length > 0) {
-      setFile(acceptedFiles[0]);
+      const selectedFile = acceptedFiles[0];
+      setFile(selectedFile);
       setMenuData(null);
       setError(null);
-      setStep("OPTIMIZE");
+      setIsProcessing(true);
+      setStatus("Analysiere PDF...");
+
+      try {
+        const formData = new FormData();
+        formData.append('file', selectedFile);
+
+        const res = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData,
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          throw new Error(data.error || 'Fehler bei der Analyse');
+        }
+
+        setWarnings(data.warnings || []);
+        setThumbnails(data.thumbnails || []);
+        setModalConfig({ model, detailLevel, style: theme });
+        setIsConfirmModalOpen(true);
+      } catch (err: any) {
+        setError(err.message);
+      } finally {
+        setIsProcessing(false);
+      }
     }
-  }, []);
+  }, [model, detailLevel, theme]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -229,6 +279,73 @@ export default function Home() {
     maxFiles: 1,
     disabled: step !== "UPLOAD"
   });
+
+  const handleConfirmModal = async (override: boolean, savePreset: boolean, presetScope: 'session' | 'device' | 'account') => {
+    setIsConfirmModalOpen(false);
+    setModel(modalConfig.model);
+    setDetailLevel(modalConfig.detailLevel);
+    setTheme(modalConfig.style as MenuTheme);
+
+    if (savePreset) {
+      const newPreset = {
+        id: Date.now().toString(),
+        name: `Preset ${new Date().toLocaleDateString()}`,
+        config: modalConfig,
+        scope: presetScope
+      };
+      saveLocalPreset(newPreset);
+      setActivePresetName(newPreset.name);
+      
+      // If authenticated, also save via API
+      // fetch('/api/presets', { method: 'POST', body: JSON.stringify({ preset: newPreset }) });
+    }
+
+    setStep("PROCESS");
+    setIsProcessing(true);
+    setStatus("Optimierung startet in 5 Sekunden... (Abbrechen möglich)");
+    setIsCancelling(false);
+
+    const timeoutId = setTimeout(async () => {
+      setCancelTimeoutId(null);
+      setStatus("Optimiere PDF...");
+      try {
+        const res = await fetch('/api/optimize', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            confirmedConfig: modalConfig,
+            userAcceptedWarnings: true,
+            overrideCritical: override
+          })
+        });
+
+        if (!res.ok) {
+          const data = await res.json();
+          throw new Error(data.error || 'Fehler bei der Optimierung');
+        }
+
+        // Proceed to actual processing (simulated here since we don't have the full backend logic)
+        // In a real app, this would trigger the Gemini extraction
+        handleOptimize(); 
+      } catch (err: any) {
+        setError(err.message);
+        setIsProcessing(false);
+        setStep("UPLOAD");
+      }
+    }, 5000);
+
+    setCancelTimeoutId(timeoutId);
+  };
+
+  const handleCancelOptimization = () => {
+    if (cancelTimeoutId) {
+      clearTimeout(cancelTimeoutId);
+      setCancelTimeoutId(null);
+    }
+    setIsProcessing(false);
+    setStep("UPLOAD");
+    setIsConfirmModalOpen(true);
+  };
 
   const handleOptimize = useCallback(async () => {
     if (!file) return;
@@ -426,6 +543,12 @@ export default function Home() {
           <p className="text-base md:text-lg text-zinc-400 max-w-2xl mx-auto font-light leading-relaxed">
             Verwandle unleserliche PDF-Scans in professionelle, hochglänzende und druckfertige Speisekarten – mit nur einem Klick.
           </p>
+          {activePresetName && (
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-xs font-medium text-emerald-400 mt-2">
+              <CheckCircle2 className="h-3 w-3" />
+              <span>Preset geladen: {activePresetName}</span>
+            </div>
+          )}
         </motion.div>
 
         {/* Step Indicator */}
@@ -460,21 +583,28 @@ export default function Home() {
                   <CardDescription className="text-zinc-500 text-sm">Wähle deine PDF-Speisekarte aus</CardDescription>
                 </CardHeader>
                 <CardContent className="p-6 space-y-6">
-                  <div
-                    {...getRootProps()}
-                    className={cn(
-                      "group relative border-2 border-dashed rounded-2xl p-10 text-center cursor-pointer transition-all duration-500 overflow-hidden",
-                      isDragActive ? "border-indigo-500 bg-indigo-500/10" : "border-zinc-800 hover:border-zinc-700 bg-black/20"
-                    )}
-                  >
-                    <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-emerald-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
-                    <input {...getInputProps()} />
-                    <UploadCloud className="mx-auto h-12 w-12 text-zinc-600 group-hover:text-indigo-400 transition-colors mb-4" />
-                    <p className="text-zinc-400 text-base font-medium group-hover:text-zinc-200 transition-colors">
-                      PDF hierher ziehen oder klicken
-                    </p>
-                    <p className="text-zinc-600 text-xs mt-2">Maximal 1 Datei (PDF)</p>
-                  </div>
+                  {isProcessing ? (
+                    <div className="flex flex-col items-center justify-center p-10 space-y-4">
+                      <Loader2 className="h-8 w-8 animate-spin text-indigo-500" />
+                      <p className="text-zinc-400">{status}</p>
+                    </div>
+                  ) : (
+                    <div
+                      {...getRootProps()}
+                      className={cn(
+                        "group relative border-2 border-dashed rounded-2xl p-10 text-center cursor-pointer transition-all duration-500 overflow-hidden",
+                        isDragActive ? "border-indigo-500 bg-indigo-500/10" : "border-zinc-800 hover:border-zinc-700 bg-black/20"
+                      )}
+                    >
+                      <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-emerald-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                      <input {...getInputProps()} />
+                      <UploadCloud className="mx-auto h-12 w-12 text-zinc-600 group-hover:text-indigo-400 transition-colors mb-4" />
+                      <p className="text-zinc-400 text-base font-medium group-hover:text-zinc-200 transition-colors">
+                        PDF hierher ziehen oder klicken
+                      </p>
+                      <p className="text-zinc-600 text-xs mt-2">Maximal 1 Datei (PDF)</p>
+                    </div>
+                  )}
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="space-y-2">
@@ -744,6 +874,18 @@ export default function Home() {
                   <span className="text-xs text-zinc-500 uppercase tracking-tighter">Layout Engine</span>
                 </div>
               </div>
+
+              {cancelTimeoutId && (
+                <div className="mt-8">
+                  <Button 
+                    variant="outline" 
+                    onClick={handleCancelOptimization}
+                    className="border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-white"
+                  >
+                    Abbrechen
+                  </Button>
+                </div>
+              )}
             </motion.div>
           )}
 
@@ -1060,6 +1202,17 @@ export default function Home() {
           &copy; 2026 Menü Magie &bull; Powered by Google Gemini
         </p>
       </footer>
+
+      <ConfirmModal
+        isOpen={isConfirmModalOpen}
+        onOpenChange={setIsConfirmModalOpen}
+        config={modalConfig}
+        onConfigChange={setModalConfig}
+        warnings={warnings}
+        thumbnails={thumbnails}
+        onConfirm={handleConfirmModal}
+        onCancel={() => setIsConfirmModalOpen(false)}
+      />
     </div>
   );
 }

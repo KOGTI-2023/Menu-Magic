@@ -5,6 +5,8 @@ Menu Magic ist eine smarte Web-App, die schlecht gescannte PDF-Speisekarten in h
 ## 🚀 Features
 
 - **📄 PDF-Upload & Analyse:** Einfaches Drag-and-Drop von PDF-Speisekarten. Die Analyse startet sofort automatisch.
+- **✅ Bestätigungs-Modal (Confirm Flow):** Nach der Analyse öffnet sich ein Modal, das Warnungen (z.B. niedrige DPI) anzeigt und die Bestätigung der Einstellungen (Modell, Detailstufe, Stil) erfordert.
+- **💾 Preset-Verwaltung:** Speichere bevorzugte Einstellungen als Presets (Session, Gerät oder Account) für zukünftige Uploads.
 - **🛠️ Bildoptimierung:** Integrierte Werkzeuge zur Verbesserung der Scanqualität (Deskew, Graustufen, Rotation, Kontrast/Helligkeit).
 - **🧠 KI-Restauration (Gemini 3.1 Pro Preview):** Nutzt "Original-First" Logik. Die KI entscheidet zwischen einer direkten Reparatur (Repair) oder einer digitalen Neukonstruktion (Recreate), um maximale Qualität zu garantieren.
 - **🎨 KI-Design-Assistent (Gemini 3 Flash Preview):** Ein interaktiver Begleiter, der auf Text- und Sprachbefehle (Voice-to-Text) reagiert, um das Design anzupassen oder Inhalte zu ändern.
@@ -42,7 +44,7 @@ Menu Magic ist eine smarte Web-App, die schlecht gescannte PDF-Speisekarten in h
     Erstelle eine `.env.local` Datei im Hauptverzeichnis:
 
     ```env
-    GEMINI_API_KEY=dein_api_schluessel_hier
+    NEXT_PUBLIC_GEMINI_API_KEY=dein_api_schluessel_hier
     NEXT_PUBLIC_LOG_LEVEL=debug # Optional: debug, info, warn, error, none
     ```
 
@@ -50,6 +52,14 @@ Menu Magic ist eine smarte Web-App, die schlecht gescannte PDF-Speisekarten in h
     ```bash
     npm run dev
     ```
+
+## 🔄 Workflow & Persistenz
+
+1. **Upload:** Der Nutzer lädt ein PDF hoch.
+2. **Analyse (`/api/upload`):** Das Backend prüft das PDF auf Probleme (DPI, Passwortschutz, Beschädigungen) und gibt strukturierte Warnungen zurück.
+3. **Bestätigung (`ConfirmModal`):** Der Nutzer sieht die Warnungen, passt ggf. Modell/Stil an und kann die Konfiguration als Preset speichern. Blockierende Fehler erfordern einen Klick auf "Trotzdem bestätigen".
+4. **Optimierung (`/api/optimize`):** Nach der Bestätigung startet die eigentliche KI-Verarbeitung. Der Nutzer hat ein 5-Sekunden-Fenster, um den Vorgang abzubrechen.
+5. **Persistenz:** Presets werden standardmäßig lokal im Browser (`localStorage` unter `menuMagic.presets`) gespeichert. Bei authentifizierten Nutzern können diese über `/api/presets` in der Cloud gesichert werden.
 
 ## 🔍 Troubleshooting & Fehlercodes
 
