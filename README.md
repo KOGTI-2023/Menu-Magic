@@ -14,6 +14,7 @@ Menu Magic ist eine smarte Web-App, die schlecht gescannte PDF-Speisekarten in h
 - **⭐ Prioritäten-System:** Markiere Menüpunkte mit Prioritäten (Hoch, Mittel, Niedrig), um sie visuell hervorzuheben.
 - **📱 Responsives Design:** Kompakte und für alle Bildschirmgrößen optimierte Benutzeroberfläche, die ohne unnötiges Scrollen auskommt.
 - **🌈 Farbpaletten-Generator:** Automatische Generierung von 3 passenden Farbpaletten basierend auf dem Stil des Restaurants.
+- **🛡️ Ganzheitliches Fehlermanagement:** Zentralisierte Fehlerbehandlung mit `AppErrorFactory`, strukturierten API-Antworten und einer globalen React Error Boundary für maximale Stabilität.
 - **👁️ Vorher/Nachher-Vergleich:** Ein interaktiver Slider ermöglicht den direkten Vergleich zwischen dem Original-Scan und dem optimierten Ergebnis.
 - **🌐 Multi-Export:** Generiert moderne, responsive HTML-Speisekarten und druckfertige PDF-Dokumente.
 
@@ -63,12 +64,14 @@ Menu Magic ist eine smarte Web-App, die schlecht gescannte PDF-Speisekarten in h
 
 ## 🔍 Troubleshooting & Fehlercodes
 
-Sollte ein Fehler auftreten, achte auf die folgenden Codes in der Konsole oder der UI:
+Die App nutzt ein zentralisiertes Fehlersystem (`lib/error-handler.ts`). Sollte ein Fehler auftreten, wird dieser mit einem spezifischen Code und einer hilfreichen Nachricht angezeigt:
 
-- **API_ERROR:** Problem bei der Kommunikation mit Google Gemini. Prüfe deinen API-Key.
-- **TIMEOUT:** Die KI-Analyse hat zu lange gedauert. Versuche es mit weniger Seiten oder geringerer Detailtiefe.
-- **FRONTEND_CRASH:** Ein unerwarteter Fehler im Browser. Die App bietet einen automatischen Recovery-Modus.
-- **RATE_LIMIT:** Zu viele Anfragen in kurzer Zeit. Die App implementiert einen automatischen "Exponential Backoff" (Wiederholungsversuche).
+- **API_ERROR / GEMINI_ERROR:** Problem bei der Kommunikation mit der KI. Prüfe deinen API-Key und das Kontingent.
+- **TIMEOUT:** Die Verarbeitung hat das Zeitlimit überschritten.
+- **UNAUTHORIZED:** Der Zugriff wurde verweigert (z.B. fehlender API-Key oder abgelaufene Sitzung).
+- **VALIDATION_ERROR:** Die bereitgestellten Daten (z.B. PDF-Format) sind ungültig.
+- **FRONTEND_CRASH:** Ein kritischer Fehler im Browser. Die globale `ErrorBoundary` fängt diesen ab und bietet einen Recovery-Button.
+- **RATE_LIMIT:** Zu viele Anfragen. Die App nutzt automatischen "Exponential Backoff" für Wiederholungsversuche.
 
 ## 🚀 Deployment
 

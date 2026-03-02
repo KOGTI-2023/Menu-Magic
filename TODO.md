@@ -14,7 +14,10 @@
 - [ ] **Web Worker for PDF Processing:** Move the `pdfjs-dist` conversion logic to a Web Worker to prevent blocking the main thread during heavy PDF processing.
 - [ ] **Streaming AI Responses:** Implement streaming for the Gemini API responses to show real-time progress of the text extraction and design updates.
 - [x] **next/image Migration:** Migrated `<img>` tags to `next/image` in `app/page.tsx` for optimized image loading.
+- [x] **Holistic Error Handling:** Implemented a centralized error handling strategy with `AppErrorFactory`, `ApiResponse` interfaces, and a global React Error Boundary.
+- [x] **API Consistency:** Updated all API routes (`/api/upload`, `/api/optimize`, `/api/presets`, `/api/analyze`) to use a consistent response format with error codes and user-friendly messages.
 - [ ] **Unit and E2E Testing:** Add comprehensive tests using Jest and Cypress/Playwright to ensure reliability of the core extraction and rendering logic.
+- [x] **Logging Integration:** Integrated structured logging via `lib/logger.ts` across both client and server.
 - [ ] **Accessibility (a11y):** Improve keyboard navigation, ARIA labels, and screen reader support across the entire application.
 
 ## UI / UX

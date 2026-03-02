@@ -9,7 +9,8 @@ export interface OptimizationOptions {
 
 export async function convertPdfToImages(
   file: File, 
-  options: OptimizationOptions = { intensity: 'medium', deskew: true, rotationAngle: 0, grayscale: true }
+  options: OptimizationOptions = { intensity: 'medium', deskew: true, rotationAngle: 0, grayscale: true },
+  onProgress?: (current: number, total: number) => void
 ): Promise<string[]> {
   try {
     const pdfjsLib = await import('pdfjs-dist/legacy/build/pdf.js');
@@ -41,6 +42,8 @@ export async function convertPdfToImages(
     };
 
     for (let i = 1; i <= numPages; i++) {
+      if (onProgress) onProgress(i, numPages);
+      
       const page = await pdf.getPage(i);
       const viewport = page.getViewport({ scale: 2.5 }); // Higher scale for better quality
 

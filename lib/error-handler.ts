@@ -91,3 +91,36 @@ export async function withRetry<T>(
   }
   throw lastError;
 }
+
+/**
+ * Helper to perform a fetch with a timeout.
+ */
+export async function fetchWithTimeout(
+  resource: string | Request,
+  options: RequestInit & { timeout?: number } = {}
+): Promise<Response> {
+  const { timeout = 30000, signal, ...rest } = options; // Default 30s timeout
+
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeout);
+
+  // If a signal was provided, link it to our controller
+  if (signal) {
+    signal.addEventListener('abort', () => controller.abort());
+  }
+
+  try {
+    const response = await fetch(resource, {
+      ...rest,
+      signal: controller.signal
+    });
+    clearTimeout(id);
+    return response;
+  } catch (error: any) {
+    clearTimeout(id);
+    if (error.name === 'AbortError') {
+      throw new Error('Zeitüberschreitung bei der Anfrage. Bitte versuchen Sie es erneut.');
+    }
+    throw error;
+  }
+}

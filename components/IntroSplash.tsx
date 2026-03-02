@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import dynamic from "next/dynamic";
 import { motion, AnimatePresence, useReducedMotion } from "motion/react";
 import Image from "next/image";
@@ -37,6 +37,11 @@ export function IntroSplash({
       });
   }, []);
 
+  const handleComplete = useCallback(() => {
+    setIsVisible(false);
+    setTimeout(onComplete, 800); // Wait for fade out animation
+  }, [onComplete]);
+
   useEffect(() => {
     if (!isVisible) return;
 
@@ -45,12 +50,7 @@ export function IntroSplash({
     }, durationMs);
 
     return () => clearTimeout(timer);
-  }, [isVisible, durationMs]);
-
-  const handleComplete = () => {
-    setIsVisible(false);
-    setTimeout(onComplete, 800); // Wait for fade out animation
-  };
+  }, [isVisible, durationMs, handleComplete]);
 
   if (!isVisible) return null;
 

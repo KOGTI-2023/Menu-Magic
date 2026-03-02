@@ -68,14 +68,6 @@ export function ConfirmModal({
 
   const hasBlockingError = warnings.some(w => w.severity === 'error');
 
-  // Reset state when modal opens
-  useEffect(() => {
-    if (isOpen) {
-      setSavePreset(false);
-      setPresetScope('device');
-    }
-  }, [isOpen]);
-
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px] bg-zinc-950 border-zinc-800 text-zinc-200">
@@ -141,7 +133,14 @@ export function ConfirmModal({
                   
                   return (
                     <div key={thumb.page} className="relative flex-shrink-0 w-20 h-28 rounded-md overflow-hidden border border-zinc-800">
-                      <Image src={thumb.url} alt={`Page ${thumb.page}`} fill className="object-cover opacity-80" referrerPolicy="no-referrer" />
+                      <Image 
+                        src={thumb.url} 
+                        alt={`Page ${thumb.page}`} 
+                        fill 
+                        sizes="80px"
+                        className="object-cover opacity-80" 
+                        referrerPolicy="no-referrer" 
+                      />
                       <div className="absolute top-1 right-1 flex gap-1">
                         {hasError && <XCircle className="h-4 w-4 text-red-500 bg-black/50 rounded-full" />}
                         {!hasError && hasWarning && <AlertTriangle className="h-4 w-4 text-amber-500 bg-black/50 rounded-full" />}

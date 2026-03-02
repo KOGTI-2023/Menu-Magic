@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server';
+import { createErrorResponse, AppErrorFactory } from '@/lib/error-handler';
+import { logger } from '@/lib/logger';
 
 // POST /api/upload
 // Handles file upload, runs server-side validations, and returns structured warnings.
@@ -8,15 +10,10 @@ export async function POST(req: Request) {
     const file = formData.get('file') as File;
 
     if (!file) {
-      return NextResponse.json({ error: 'No file provided' }, { status: 400 });
+      return NextResponse.json(createErrorResponse("MISSING_FILE", "Keine Datei bereitgestellt"), { status: 400 });
     }
 
-    // TODO: Integrate @google/generative-ai here for image understanding during analysis.
-    // Example: Use Gemini 3.1 Pro Preview to analyze the first page for OCR confidence, layout complexity, etc.
-    // const ai = new GoogleGenAI({ apiKey: process.env.NEXT_PUBLIC_GEMINI_API_KEY });
-    // const response = await ai.models.generateContent({ ... });
-
-    // Mocking server-side validations (DPI, color space, OCR confidence, page size, password-protected, corrupted)
+    // Mocking server-side validations
     const warnings = [];
 
     // Simulate a non-blocking warning (e.g., low DPI)
@@ -28,12 +25,10 @@ export async function POST(req: Request) {
       recommendedAction: 'Laden Sie einen höher auflösenden Scan hoch, falls möglich.',
     });
 
-    // Simulate a blocking error randomly (for demonstration purposes, let's say 10% chance)
-    // In a real app, this would be determined by actual PDF parsing.
     const isCorrupted = Math.random() < 0.1;
     if (isCorrupted) {
       warnings.push({
-        page: 0, // 0 means document-level
+        page: 0,
         severity: 'error',
         code: 'FILE_CORRUPTED',
         message: 'PDF ist passwortgeschützt oder beschädigt. Optimierung nicht möglich, es sei denn, Sie wählen \'Trotzdem bestätigen\' (Risiko: schlechte Ausgabe).',
@@ -41,7 +36,6 @@ export async function POST(req: Request) {
       });
     }
 
-    // Mocking thumbnail generation (returning placeholder URLs)
     const thumbnails = [
       { page: 1, url: 'https://picsum.photos/seed/page1/150/200', issues: ['LOW_DPI'] },
       { page: 2, url: 'https://picsum.photos/seed/page2/150/200', issues: [] },
@@ -49,12 +43,15 @@ export async function POST(req: Request) {
 
     return NextResponse.json({
       success: true,
-      fileName: file.name,
-      warnings,
-      thumbnails,
+      data: {
+        fileName: file.name,
+        warnings,
+        thumbnails,
+      },
+      timestamp: new Date().toISOString(),
     });
-  } catch (error) {
-    console.error('Upload error:', error);
-    return NextResponse.json({ error: 'Internal server error during upload analysis' }, { status: 500 });
+  } catch (error: any) {
+    logger.error('Upload error:', error);
+    return NextResponse.json(createErrorResponse("UPLOAD_FAILED", "Fehler bei der Analyse des Uploads", error.message), { status: 500 });
   }
 }

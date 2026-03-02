@@ -49,10 +49,18 @@
   - The UI reverts to the "UPLOAD" step.
   - The `ConfirmModal` re-opens, allowing the user to adjust settings again.
 
-## 7. Optimization Execution
-- **Action:** User waits for the 5-second countdown to finish.
+## 8. Error Handling & Resilience
+- **Action:** Simulate a network failure during `/api/upload`.
 - **Expected:**
-  - A POST request is made to `/api/optimize` containing the `confirmedConfig`, `userAcceptedWarnings: true`, and `overrideCritical` flag.
-  - The UI updates to "Optimiere PDF...".
-  - Upon success, the actual optimization logic (e.g., Gemini extraction) begins.
-  - If the API returns a 400 error (missing confirmation flag), the UI displays the error and reverts to the upload step.
+  - The UI displays a clear error message (e.g., "Upload fehlgeschlagen").
+  - A notification appears in the bottom-right corner.
+  - The user can retry the upload.
+- **Action:** Simulate a 429 (Rate Limit) error from `/api/optimize`.
+- **Expected:**
+  - The UI displays the specific error message from `lib/error-handler.ts`.
+  - The "Exponential Backoff" logic (if implemented in `withRetry`) is triggered, or the user is prompted to wait.
+- **Action:** Trigger a critical frontend crash (e.g., by manually throwing an error in a component).
+- **Expected:**
+  - The global `ErrorBoundary` catches the crash.
+  - A full-screen error UI appears with a "Seite neu laden" button.
+  - The error is logged to the console/logger.

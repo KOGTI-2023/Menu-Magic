@@ -35,6 +35,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { convertPdfToImages, OptimizationOptions } from "@/lib/pdf-utils";
 import { logger } from "@/lib/logger";
+import { fetchWithTimeout } from "@/lib/error-handler";
 import { extractMenuData, MenuData } from "@/lib/gemini";
 import { MenuPreview, MenuTheme } from "@/components/menu-preview";
 import { CostTracker, TokenUsage } from "@/components/cost-tracker";
@@ -265,23 +266,27 @@ export default function Home() {
           body: formData,
         });
 
-        const data = await res.json();
+        const result = await res.json();
 
-        if (!res.ok) {
-          throw new Error(data.error || 'Fehler bei der Analyse');
+        if (!res.ok || !result.success) {
+          const errorMsg = result.error?.message || result.error || 'Fehler bei der Analyse';
+          throw new Error(errorMsg);
         }
 
-        setWarnings(data.warnings || []);
-        setThumbnails(data.thumbnails || []);
+        const { warnings: uploadWarnings, thumbnails: uploadThumbnails } = result.data;
+        setWarnings(uploadWarnings || []);
+        setThumbnails(uploadThumbnails || []);
         setModalConfig({ model, detailLevel, style: theme });
         setIsConfirmModalOpen(true);
       } catch (err: any) {
-        setError(err.message);
+        logger.error("Upload/Analysis failed:", err);
+        setError(err.message || "Ein unerwarteter Fehler ist beim Hochladen aufgetreten.");
+        addNotification("Upload fehlgeschlagen", "error");
       } finally {
         setIsProcessing(false);
       }
     }
-  }, [model, detailLevel, theme]);
+  }, [model, detailLevel, theme, addNotification]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -314,33 +319,42 @@ export default function Home() {
     setIsProcessing(true);
     setStatus("Optimierung startet in 5 Sekunden... (Abbrechen möglich)");
     setIsCancelling(false);
+    setProgress(5);
 
     const timeoutId = setTimeout(async () => {
       setCancelTimeoutId(null);
       setStatus("Optimiere PDF...");
+      setProgress(10);
+      logger.info("Starting optimization API call...");
       try {
-        const res = await fetch('/api/optimize', {
+        const res = await fetchWithTimeout('/api/optimize', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             confirmedConfig: modalConfig,
             userAcceptedWarnings: true,
             overrideCritical: override
-          })
+          }),
+          timeout: 20000 // 20s timeout for optimization start
         });
 
-        if (!res.ok) {
-          const data = await res.json();
-          throw new Error(data.error || 'Fehler bei der Optimierung');
+        const result = await res.json();
+        logger.info("Optimization API response received:", result);
+
+        if (!res.ok || !result.success) {
+          const errorMsg = result.error?.message || result.error || 'Fehler bei der Optimierung';
+          throw new Error(errorMsg);
         }
 
-        // Proceed to actual processing (simulated here since we don't have the full backend logic)
-        // In a real app, this would trigger the Gemini extraction
-        handleOptimize(); 
+        // Proceed to actual processing
+        logger.info("Proceeding to PDF-to-Image conversion...");
+        await handleOptimize(true); 
       } catch (err: any) {
-        setError(err.message);
+        logger.error("Optimization start failed:", err);
+        setError(err.message || "Fehler beim Starten der Optimierung.");
         setIsProcessing(false);
         setStep("UPLOAD");
+        addNotification("Optimierung konnte nicht gestartet werden", "error");
       }
     }, 5000);
 
@@ -357,50 +371,25 @@ export default function Home() {
     setIsConfirmModalOpen(true);
   };
 
-  const handleOptimize = useCallback(async () => {
-    if (!file) return;
-    setIsProcessing(true);
-    try {
-      const images = await convertPdfToImages(file, optimizationOptions);
-      setOptimizedImages(images);
-    } catch (err: any) {
-      setError(`Optimierung fehlgeschlagen: ${err.message}`);
-    } finally {
-      setIsProcessing(false);
+  const handleProcess = useCallback(async () => {
+    if (optimizedImages.length === 0) {
+      logger.warn("handleProcess called with 0 optimized images");
+      return;
     }
-  }, [file, optimizationOptions]);
-
-  // Re-run optimization when options change
-  const prevOptionsRef = useRef(optimizationOptions);
-  const prevFileRef = useRef(file);
-
-  useEffect(() => {
-    if (file && step === "OPTIMIZE") {
-      const optionsChanged = prevOptionsRef.current !== optimizationOptions;
-      const fileChanged = prevFileRef.current !== file;
-      
-      if (optionsChanged || fileChanged || optimizedImages.length === 0) {
-        handleOptimize();
-        prevOptionsRef.current = optimizationOptions;
-        prevFileRef.current = file;
-      }
-    }
-  }, [optimizationOptions, file, step, handleOptimize, optimizedImages.length]);
-
-  const handleProcess = async () => {
-    if (optimizedImages.length === 0) return;
 
     setStep("PROCESS");
     setIsProcessing(true);
     setError(null);
     setProgress(10);
     setStatus("Schritt 1/4: Bilder werden vorbereitet...");
+    logger.info(`Starting AI analysis for ${optimizedImages.length} pages...`);
 
     try {
-      setProgress(30);
+      setProgress(40);
       setStatus("Schritt 2/4: KI-Analyse wird gestartet (Server)...");
+      logger.info("Sending request to /api/analyze...");
       
-      const response = await fetch('/api/analyze', {
+      const response = await fetchWithTimeout('/api/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -408,13 +397,16 @@ export default function Home() {
           model,
           detailLevel,
           thinkingLevel
-        })
+        }),
+        timeout: 180000 // 3 minute timeout for Gemini analysis
       });
 
       const result = await response.json();
+      logger.info("AI analysis response received:", result.success ? "Success" : "Failure");
       
       if (!response.ok || !result.success) {
-        throw new Error(result.error?.message || "Fehler bei der Server-Kommunikation");
+        const errorMsg = result.error?.message || result.error || "Fehler bei der Server-Kommunikation";
+        throw new Error(errorMsg);
       }
       
       if (result.usage) {
@@ -450,18 +442,71 @@ export default function Home() {
       setStep("RESULT");
       addNotification("Speisekarte erfolgreich verarbeitet!", "success");
     } catch (err: any) {
-      logger.error("Error in handleProcess:", err);
-      // Extrahiere die eigentliche Fehlermeldung, falls sie in einem Error-Objekt verschachtelt ist
-      const errorMessage = err instanceof Error ? err.message : 
-                           (typeof err === 'object' && err !== null && 'message' in err) ? String(err.message) : 
-                           String(err);
-      
-      setError(`Fehler bei der Verarbeitung: ${errorMessage}`);
-      setStep("OPTIMIZE");
+      logger.error("AI Analysis failed:", err);
+      setError(err.message || "Ein Fehler ist während der KI-Analyse aufgetreten.");
+      setStep("UPLOAD");
+      addNotification("KI-Analyse fehlgeschlagen", "error");
     } finally {
       setIsProcessing(false);
     }
-  };
+  }, [optimizedImages, model, detailLevel, thinkingLevel, addNotification]);
+
+  const handleOptimize = useCallback(async (autoProceed: boolean = false) => {
+    if (!file) {
+      logger.warn("handleOptimize called without file");
+      return;
+    }
+    setIsProcessing(true);
+    setStatus("PDF wird in Bilder umgewandelt...");
+    logger.info("Starting PDF to Image conversion...");
+    try {
+      // Add a timeout for the entire conversion process (e.g., 5 minutes)
+      const conversionPromise = convertPdfToImages(file, optimizationOptions, (current, total) => {
+        const p = Math.round((current / total) * 30) + 10; // 10% to 40%
+        setProgress(p);
+        setStatus(`Verarbeite Seite ${current} von ${total}...`);
+        logger.info(`PDF Conversion Progress: ${current}/${total}`);
+      });
+
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error("Die PDF-Verarbeitung hat zu lange gedauert (Timeout).")), 300000)
+      );
+
+      const images = await Promise.race([conversionPromise, timeoutPromise]) as string[];
+      
+      logger.info(`PDF conversion successful. Generated ${images.length} images.`);
+      setOptimizedImages(images);
+      
+      if (autoProceed) {
+        logger.info("Auto-proceeding to AI analysis...");
+        handleProcess();
+      }
+    } catch (err: any) {
+      logger.error("Optimization failed:", err);
+      setError(`Optimierung fehlgeschlagen: ${err.message}`);
+      setStep("UPLOAD");
+      addNotification("PDF-Verarbeitung fehlgeschlagen", "error");
+    } finally {
+      setIsProcessing(false);
+    }
+  }, [file, optimizationOptions, handleProcess, addNotification]);
+
+  // Re-run optimization when options change
+  const prevOptionsRef = useRef(optimizationOptions);
+  const prevFileRef = useRef(file);
+
+  useEffect(() => {
+    if (file && step === "OPTIMIZE") {
+      const optionsChanged = prevOptionsRef.current !== optimizationOptions;
+      const fileChanged = prevFileRef.current !== file;
+      
+      if (optionsChanged || fileChanged || optimizedImages.length === 0) {
+        handleOptimize();
+        prevOptionsRef.current = optimizationOptions;
+        prevFileRef.current = file;
+      }
+    }
+  }, [optimizationOptions, file, step, handleOptimize, optimizedImages.length]);
 
   const handleDownloadPdf = async () => {
     try {
@@ -878,15 +923,23 @@ export default function Home() {
                       className="text-indigo-500"
                     />
                   </svg>
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <Zap className="h-16 w-16 text-indigo-400 animate-bounce" />
+                  <div className="absolute inset-0 flex flex-col items-center justify-center">
+                    <Zap className="h-12 w-12 text-indigo-400 animate-bounce mb-2" />
+                    <span className="text-2xl font-bold text-white">{progress}%</span>
                   </div>
                 </div>
               </div>
               
               <div className="space-y-4">
-                <h2 className="text-3xl font-bold text-white">{status}</h2>
-                <p className="text-zinc-500 font-light">Gemini analysiert die Struktur deiner Speisekarte...</p>
+                <h2 className="text-3xl font-bold text-white tracking-tight">{status}</h2>
+                <div className="max-w-md mx-auto">
+                  <Progress value={progress} className="h-1 bg-zinc-800" />
+                </div>
+                <p className="text-zinc-500 font-light max-w-sm mx-auto">
+                  {progress < 40 ? "Wir bereiten die Seiten für die KI-Analyse vor..." : 
+                   progress < 80 ? "Gemini analysiert nun die Struktur und Inhalte deiner Speisekarte..." :
+                   "Fast fertig! Wir generieren gerade die interaktive Vorschau..."}
+                </p>
               </div>
 
               <div className="flex justify-center gap-8">

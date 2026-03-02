@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server';
+import { createErrorResponse } from '@/lib/error-handler';
+import { logger } from '@/lib/logger';
 
 // POST /api/optimize
 // Handles the actual optimization process after confirmation.
@@ -10,15 +12,12 @@ export async function POST(req: Request) {
     // API & Flow Gating: MUST require confirmation flag
     if (!confirmedConfig || typeof userAcceptedWarnings !== 'boolean') {
       return NextResponse.json(
-        { error: 'Missing confirmation flag or configuration payload.' },
+        createErrorResponse("UNCONFIRMED_CONFIG", "Konfiguration wurde nicht bestätigt oder Bestätigungs-Flag fehlt"),
         { status: 400 }
       );
     }
 
-    // TODO: Integrate @google/generative-ai here for the heavy lifting.
-    // Use Gemini 3.1 Pro Preview for complex text extraction and layout generation.
-    // const ai = new GoogleGenAI({ apiKey: process.env.NEXT_PUBLIC_GEMINI_API_KEY });
-    // const response = await ai.models.generateContent({ ... });
+    logger.info('Starting optimization with config:', confirmedConfig);
 
     // Simulate a long-running optimization process (e.g., 5 seconds)
     await new Promise(resolve => setTimeout(resolve, 5000));
@@ -26,12 +25,17 @@ export async function POST(req: Request) {
     // Return success
     return NextResponse.json({
       success: true,
-      message: 'Optimization completed successfully.',
-      // In a real app, this would return the generated HTML/PDF URLs or data.
-      resultUrl: '/preview',
+      data: {
+        message: 'Optimierung erfolgreich abgeschlossen.',
+        resultUrl: '/preview',
+      },
+      timestamp: new Date().toISOString(),
     });
-  } catch (error) {
-    console.error('Optimization error:', error);
-    return NextResponse.json({ error: 'Internal server error during optimization' }, { status: 500 });
+  } catch (error: any) {
+    logger.error('Optimization error:', error);
+    return NextResponse.json(
+      createErrorResponse("OPTIMIZATION_FAILED", "Fehler während der Optimierung", error.message),
+      { status: 500 }
+    );
   }
 }
