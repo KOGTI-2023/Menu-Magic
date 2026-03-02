@@ -407,12 +407,12 @@ export default function Home() {
     setIsProcessing(true);
     setError(null);
     setProgress(10);
-    setStatus("Schritt 1/4: Bilder werden vorbereitet...");
+    setStatus("Bereite Bilder für die Analyse vor...");
     logger.info(`Starting AI analysis for ${optimizedImages.length} pages...`);
 
     try {
       setProgress(40);
-      setStatus("Schritt 2/4: KI-Analyse wird gestartet (Server)...");
+      setStatus("Analysiere Struktur mit KI...");
       logger.info("Sending request to /api/analyze...");
       
       const response = await fetchWithTimeout('/api/analyze', {
@@ -460,7 +460,7 @@ export default function Home() {
       const data = result.data;
       
       setProgress(70);
-      setStatus("Schritt 3/4: Daten werden validiert...");
+      setStatus("Generiere Vorschau...");
 
       if (!data) {
         throw new Error("Keine Daten von der Gemini API erhalten.");
@@ -472,7 +472,7 @@ export default function Home() {
       }
       
       setProgress(90);
-      setStatus("Schritt 4/4: Vorschau wird generiert...");
+      setStatus("Schließe Export ab...");
       
       await new Promise(resolve => setTimeout(resolve, 500));
       
@@ -496,14 +496,14 @@ export default function Home() {
       return;
     }
     setIsProcessing(true);
-    setStatus("PDF wird in Bilder umgewandelt...");
+    setStatus("Konvertiere PDF in Bilder...");
     logger.info("Starting PDF to Image conversion...");
     try {
       // Add a timeout for the entire conversion process (e.g., 5 minutes)
       const conversionPromise = convertPdfToImages(file, optimizationOptions, (current, total) => {
         const p = Math.round((current / total) * 30) + 10; // 10% to 40%
         setProgress(p);
-        setStatus(`Verarbeite Seite ${current} von ${total}...`);
+        setStatus(`Konvertiere PDF in Bilder (Seite ${current} von ${total})...`);
         logger.info(`PDF Conversion Progress: ${current}/${total}`);
       });
 

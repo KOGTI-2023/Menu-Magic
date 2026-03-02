@@ -95,14 +95,15 @@ Bevor du mit dem Setup beginnst, stelle sicher, dass folgende Tools auf deinem S
 
 ## 🔍 Troubleshooting & Fehlercodes
 
-Die App nutzt ein zentralisiertes Fehlersystem (`lib/error-handler.ts`). Sollte ein Fehler auftreten, wird dieser mit einem spezifischen Code und einer hilfreichen Nachricht angezeigt:
+Die App nutzt ein zentralisiertes, robustes Fehlersystem (`lib/error-handler.ts`). Sollte ein Fehler auftreten, wird dieser mit einem spezifischen Code und einer hilfreichen Nachricht angezeigt. Alle API-Routen verwenden strukturierte JSON-Antworten über `createErrorResponse`.
 
 - **API_ERROR / GEMINI_ERROR:** Problem bei der Kommunikation mit der KI. Prüfe deinen API-Key und das Kontingent.
-- **TIMEOUT:** Die Verarbeitung hat das Zeitlimit überschritten.
+- **TIMEOUT:** Die Verarbeitung hat das Zeitlimit überschritten. Für die KI-Analyse (`/api/analyze`) ist ein großzügiges Timeout von 5 Minuten konfiguriert, um auch komplexe PDFs verarbeiten zu können. Sollte dieses Limit dennoch überschritten werden, kann der Nutzer den Vorgang einfach neu starten.
 - **UNAUTHORIZED:** Der Zugriff wurde verweigert (z.B. fehlender API-Key oder abgelaufene Sitzung).
 - **VALIDATION_ERROR:** Die bereitgestellten Daten (z.B. PDF-Format) sind ungültig.
-- **FRONTEND_CRASH:** Ein kritischer Fehler im Browser. Die globale `ErrorBoundary` fängt diesen ab und bietet einen Recovery-Button.
+- **FRONTEND_CRASH:** Ein kritischer Fehler im Browser. Die globale `ErrorBoundary` fängt diesen ab, schützt die Nutzerdaten und bietet einen Recovery-Button.
 - **RATE_LIMIT:** Zu viele Anfragen. Die App nutzt automatischen "Exponential Backoff" für Wiederholungsversuche.
+- **INVALID_CONTENT_TYPE:** Die API-Route hat unerwartete Daten erhalten (z.B. HTML statt JSON). Dies wird nun sicher abgefangen.
 
 ## 🚀 Deployment
 

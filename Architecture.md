@@ -41,6 +41,8 @@ graph TD
 ## 3. Fehlerbehandlung & Resilienz
 
 - **Exponential Backoff:** Automatische Wiederholung bei Rate-Limits oder Serverfehlern der Gemini API.
+- **Generöse Timeouts:** Die KI-Analyse (`/api/analyze`) verfügt über ein 5-Minuten-Timeout (`maxDuration = 300`), um auch bei sehr großen Speisekarten nicht vorzeitig abzubrechen. Ein interner `Promise.race` Mechanismus sorgt für kontrollierte Fehlermeldungen, bevor Serverless-Limits greifen.
+- **Strikte API-Validierung:** Alle API-Antworten werden auf korrekten `Content-Type` (JSON) geprüft. Unerwartete HTML-Fehlerseiten des Servers führen nicht mehr zu Abstürzen, sondern zu sauberen Fehlermeldungen.
 - **Global Error Boundary:** Fängt Frontend-Crashes ab und ermöglicht einen sicheren Neustart ohne Datenverlust.
 - **Fallback-Modus:** Bei kompletten Analysefehlern wird ein Basis-Menü generiert, um den Workflow nicht zu unterbrechen.
 - **Zentrales Logging (`lib/logger.ts`):** Jede Anfrage erhält eine eindeutige `requestId` zur Nachverfolgung. Das Loglevel kann über die Umgebungsvariable `NEXT_PUBLIC_LOG_LEVEL` gesteuert werden, um im Produktionsbetrieb (z.B. mit Level `warn`) Ressourcen zu schonen.
