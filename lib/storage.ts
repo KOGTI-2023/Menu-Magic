@@ -4,8 +4,9 @@ export interface SavedSession {
   id: string;
   fileName: string;
   updatedAt: number;
-  step: 'UPLOAD' | 'OPTIMIZE' | 'PROCESS' | 'RESULT';
+  step: 'UPLOAD' | 'OPTIMIZE' | 'PROCESS' | 'RESULT' | 'GALLERY';
   optimizedImages: string[];
+  originalImages?: string[];
   menuData: any | null;
 }
 

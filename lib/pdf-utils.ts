@@ -7,11 +7,16 @@ export interface OptimizationOptions {
   grayscale: boolean;
 }
 
+export interface ProcessedImages {
+  original: string;
+  optimized: string;
+}
+
 export async function convertPdfToImages(
   file: File, 
   options: OptimizationOptions = { intensity: 'medium', deskew: true, rotationAngle: 0, grayscale: true },
   onProgress?: (current: number, total: number) => void
-): Promise<string[]> {
+): Promise<ProcessedImages[]> {
   try {
     const pdfjsLib = await import('pdfjs-dist/legacy/build/pdf.js');
     
@@ -28,7 +33,7 @@ export async function convertPdfToImages(
     const arrayBuffer = await file.arrayBuffer();
     const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
     const numPages = pdf.numPages;
-    const images: string[] = [];
+    const results: ProcessedImages[] = [];
 
     const contrastMap = {
       low: '1.1',
@@ -48,18 +53,34 @@ export async function convertPdfToImages(
       const page = await pdf.getPage(i);
       const viewport = page.getViewport({ scale: 2.5 }); // Higher scale for better quality
 
-      const canvas = document.createElement('canvas');
-      const context = canvas.getContext('2d');
+      // 1. Render Original
+      const originalCanvas = document.createElement('canvas');
+      const originalContext = originalCanvas.getContext('2d');
+      if (!originalContext) throw new Error('Konnte keinen Canvas-Kontext für Original erstellen.');
       
-      if (!context) throw new Error('Konnte keinen Canvas-Kontext erstellen.');
+      originalCanvas.height = viewport.height;
+      originalCanvas.width = viewport.width;
+      
+      await page.render({
+        canvasContext: originalContext,
+        viewport: viewport,
+      }).promise;
+      
+      const originalDataUrl = originalCanvas.toDataURL('image/jpeg', 0.8);
+      const originalBase64 = originalDataUrl.split(',')[1];
 
-      canvas.height = viewport.height;
-      canvas.width = viewport.width;
+      // 2. Render Optimized
+      const optimizedCanvas = document.createElement('canvas');
+      const optimizedContext = optimizedCanvas.getContext('2d');
+      if (!optimizedContext) throw new Error('Konnte keinen Canvas-Kontext für Optimierung erstellen.');
+
+      optimizedCanvas.height = viewport.height;
+      optimizedCanvas.width = viewport.width;
 
       if (options.rotationAngle !== 0) {
-        context.translate(canvas.width / 2, canvas.height / 2);
-        context.rotate((options.rotationAngle * Math.PI) / 180);
-        context.translate(-canvas.width / 2, -canvas.height / 2);
+        optimizedContext.translate(optimizedCanvas.width / 2, optimizedCanvas.height / 2);
+        optimizedContext.rotate((options.rotationAngle * Math.PI) / 180);
+        optimizedContext.translate(-optimizedCanvas.width / 2, -optimizedCanvas.height / 2);
       }
 
       // Apply filters based on intensity
@@ -67,22 +88,23 @@ export async function convertPdfToImages(
       const brightness = brightnessMap[options.intensity];
       const grayscale = options.grayscale ? 'grayscale(1)' : '';
       
-      context.filter = `contrast(${contrast}) brightness(${brightness}) ${grayscale} sharp(1.2)`;
+      optimizedContext.filter = `contrast(${contrast}) brightness(${brightness}) ${grayscale} sharp(1.2)`;
 
-      const renderContext = {
-        canvasContext: context,
+      await page.render({
+        canvasContext: optimizedContext,
         viewport: viewport,
-        canvas: canvas,
-      };
-
-      await page.render(renderContext).promise;
+      }).promise;
       
-      const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
-      const base64Data = dataUrl.split(',')[1];
-      images.push(base64Data);
+      const optimizedDataUrl = optimizedCanvas.toDataURL('image/jpeg', 0.9);
+      const optimizedBase64 = optimizedDataUrl.split(',')[1];
+
+      results.push({
+        original: originalBase64,
+        optimized: optimizedBase64
+      });
     }
 
-    return images;
+    return results;
   } catch (error) {
     logger.error("Error converting PDF to images:", error);
     throw new Error(`Fehler bei der PDF-Verarbeitung: ${error instanceof Error ? error.message : String(error)}`);

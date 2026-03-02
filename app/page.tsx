@@ -39,6 +39,7 @@ import { fetchWithTimeout } from "@/lib/error-handler";
 import { extractMenuData, MenuData } from "@/lib/gemini";
 import { MenuPreview, MenuTheme } from "@/components/menu-preview";
 import { CostTracker, TokenUsage } from "@/components/cost-tracker";
+import { BeforeAfterSlider } from "@/components/BeforeAfterSlider";
 import { cn } from "@/lib/utils";
 
 import { ConfirmModal, Warning, Thumbnail, Config } from "@/components/ConfirmModal";
@@ -61,6 +62,7 @@ export default function Home() {
   const [menuData, setMenuData] = useState<MenuData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [optimizedImages, setOptimizedImages] = useState<string[]>([]);
+  const [originalImages, setOriginalImages] = useState<string[]>([]);
   const [showComparison, setShowComparison] = useState(false);
   const [showRepairMetadata, setShowRepairMetadata] = useState(false);
   const [optimizationOptions, setOptimizationOptions] = useState<OptimizationOptions>({
@@ -125,13 +127,14 @@ export default function Home() {
         updatedAt: Date.now(),
         step,
         optimizedImages,
+        originalImages,
         menuData
       }).then(() => {
         // Update gallery list
         getAllSessionsMetadata().then(setGallerySessions);
       });
     }
-  }, [sessionId, file, step, optimizedImages, menuData]);
+  }, [sessionId, file, step, optimizedImages, originalImages, menuData]);
 
   const addNotification = useCallback((message: string, type: 'info' | 'error' | 'success' = 'info') => {
     const id = Math.random().toString(36).substring(7);
@@ -434,12 +437,12 @@ export default function Home() {
     setIsProcessing(true);
     setError(null);
     setProgress(10);
-    setStatus("Bereite Bilder für die Analyse vor...");
+    setStatus("Preparing images for analysis...");
     logger.info(`Starting AI analysis for ${images.length} pages...`);
 
     try {
       setProgress(40);
-      setStatus("Analysiere Struktur mit KI...");
+      setStatus("Analyzing structure with AI...");
       logger.info("Sending request to /api/analyze...");
       
       const response = await fetchWithTimeout('/api/analyze', {
@@ -487,7 +490,7 @@ export default function Home() {
       const data = result.data;
       
       setProgress(70);
-      setStatus("Generiere Vorschau...");
+      setStatus("Generating preview...");
 
       if (!data) {
         throw new Error("Keine Daten von der Gemini API erhalten.");
@@ -499,7 +502,7 @@ export default function Home() {
       }
       
       setProgress(90);
-      setStatus("Schließe Export ab...");
+      setStatus("Finalizing export...");
       
       await new Promise(resolve => setTimeout(resolve, 500));
       
@@ -523,14 +526,14 @@ export default function Home() {
       return;
     }
     setIsProcessing(true);
-    setStatus("Konvertiere PDF in Bilder...");
+    setStatus("Converting PDF to images...");
     logger.info("Starting PDF to Image conversion...");
     try {
       // Add a timeout for the entire conversion process (e.g., 5 minutes)
       const conversionPromise = convertPdfToImages(file, optimizationOptions, (current, total) => {
         const p = Math.round((current / total) * 30) + 10; // 10% to 40%
         setProgress(p);
-        setStatus(`Konvertiere PDF in Bilder (Seite ${current} von ${total})...`);
+        setStatus(`Converting PDF to images (Page ${current} of ${total})...`);
         logger.info(`PDF Conversion Progress: ${current}/${total}`);
       });
 
@@ -538,14 +541,18 @@ export default function Home() {
         setTimeout(() => reject(new Error("Die PDF-Verarbeitung hat zu lange gedauert (Timeout).")), 300000)
       );
 
-      const images = await Promise.race([conversionPromise, timeoutPromise]) as string[];
+      const results = await Promise.race([conversionPromise, timeoutPromise]) as any[];
       
-      logger.info(`PDF conversion successful. Generated ${images.length} images.`);
-      setOptimizedImages(images);
+      logger.info(`PDF conversion successful. Generated ${results.length} images.`);
+      const optimized = results.map(r => r.optimized);
+      const originals = results.map(r => r.original);
+      
+      setOptimizedImages(optimized);
+      setOriginalImages(originals);
       
       if (autoProceed) {
         logger.info("Auto-proceeding to AI analysis...");
-        handleProcess(images);
+        handleProcess(optimized);
       }
     } catch (err: any) {
       logger.error("Optimization failed:", err);
@@ -861,10 +868,12 @@ export default function Home() {
                     <Card key={session.id} className="bg-zinc-900/40 backdrop-blur-xl border-white/10 overflow-hidden group hover:border-indigo-500/50 transition-all">
                       {session.thumbnail && (
                         <div className="h-40 w-full relative overflow-hidden bg-black/50">
-                          <img 
+                          <Image 
                             src={`data:image/jpeg;base64,${session.thumbnail}`} 
                             alt="Thumbnail" 
-                            className="w-full h-full object-cover opacity-70 group-hover:opacity-100 transition-opacity"
+                            fill
+                            className="object-cover opacity-70 group-hover:opacity-100 transition-opacity"
+                            referrerPolicy="no-referrer"
                           />
                           <div className="absolute top-2 right-2 bg-black/60 backdrop-blur-md px-2 py-1 rounded-md text-xs font-medium text-white border border-white/10">
                             {session.pageCount} Seiten
@@ -888,6 +897,7 @@ export default function Home() {
                               if (fullSession) {
                                 setSessionId(fullSession.id);
                                 setOptimizedImages(fullSession.optimizedImages || []);
+                                setOriginalImages(fullSession.originalImages || []);
                                 setMenuData(fullSession.menuData);
                                 setStep(fullSession.step === 'UPLOAD' ? 'OPTIMIZE' : fullSession.step);
                                 addNotification("Sitzung geladen", "success");
@@ -1034,7 +1044,10 @@ export default function Home() {
                 {/* Preview */}
                 <div className="lg:col-span-2 space-y-4">
                   <div className="flex items-center justify-between px-4">
-                    <h3 className="text-lg font-medium text-zinc-400">Vorschau der Optimierung</h3>
+                    <div className="space-y-1">
+                      <h3 className="text-lg font-medium text-zinc-400">Vorschau der Optimierung</h3>
+                      <p className="text-[10px] text-zinc-600 uppercase tracking-widest">Ziehe den Slider zum Vergleichen</p>
+                    </div>
                     <span className="text-xs text-zinc-600 uppercase tracking-widest">Live Rendering</span>
                   </div>
                   <div className="h-[600px] bg-zinc-900/60 rounded-3xl border border-white/5 overflow-hidden relative group flex flex-col">
@@ -1046,14 +1059,18 @@ export default function Home() {
                     ) : optimizedImages.length > 0 ? (
                       <div className="flex-1 overflow-y-auto p-8 space-y-8 scrollbar-hide">
                         {optimizedImages.map((img, i) => (
-                          <motion.img 
+                          <motion.div
                             key={i}
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
-                            src={`data:image/jpeg;base64,${img}`} 
-                            className="w-full rounded-xl shadow-2xl border border-white/10"
-                            alt={`Seite ${i + 1}`}
-                          />
+                          >
+                            <BeforeAfterSlider 
+                              beforeImage={originalImages[i] || img}
+                              afterImage={img}
+                              className="w-full shadow-2xl"
+                            />
+                            <p className="text-center text-xs text-zinc-600 mt-2 uppercase tracking-widest">Seite {i + 1}</p>
+                          </motion.div>
                         ))}
                       </div>
                     ) : (
@@ -1113,9 +1130,10 @@ export default function Home() {
                   <Progress value={progress} className="h-1 bg-zinc-800" />
                 </div>
                 <p className="text-zinc-500 font-light max-w-sm mx-auto">
-                  {progress < 40 ? "Wir bereiten die Seiten für die KI-Analyse vor..." : 
-                   progress < 80 ? "Gemini analysiert nun die Struktur und Inhalte deiner Speisekarte..." :
-                   "Fast fertig! Wir generieren gerade die interaktive Vorschau..."}
+                  {progress < 40 ? "Converting PDF to images..." : 
+                   progress < 70 ? "Analyzing structure with AI..." :
+                   progress < 90 ? "Generating preview..." :
+                   "Finalizing export..."}
                 </p>
               </div>
 
@@ -1359,7 +1377,7 @@ export default function Home() {
                       {/* Original (Before) */}
                       <div className="absolute inset-0">
                         <div className="h-full w-full overflow-y-auto p-8 bg-zinc-800 scrollbar-hide">
-                          {optimizedImages.map((img, i) => (
+                          {(originalImages.length > 0 ? originalImages : optimizedImages).map((img, i) => (
                             <Image 
                               key={i} 
                               src={`data:image/jpeg;base64,${img}`} 
@@ -1368,6 +1386,7 @@ export default function Home() {
                               width={800}
                               height={1131}
                               style={{ objectFit: 'contain' }}
+                              referrerPolicy="no-referrer"
                             />
                           ))}
                         </div>

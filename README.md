@@ -6,7 +6,7 @@ Menu Magic ist eine smarte Web-App, die schlecht gescannte PDF-Speisekarten in h
 
 - **📄 PDF-Upload & Analyse:** Einfaches Drag-and-Drop von PDF-Speisekarten. Die Analyse startet sofort automatisch.
 - **✅ Bestätigungs-Modal (Confirm Flow):** Nach der Analyse öffnet sich ein Modal, das Warnungen (z.B. niedrige DPI) anzeigt und die Bestätigung der Einstellungen (Modell, Detailstufe, Stil) erfordert.
-- **💾 Preset-Verwaltung:** Speichere bevorzugte Einstellungen als Presets (Session, Gerät oder Account) für zukünftige Uploads.
+- **💾 Sitzungs-Persistenz & Galerie:** Automatisches Speichern des Fortschritts in der IndexedDB. Sitzungen können jederzeit über die Galerie wiederaufgenommen werden.
 - **🛠️ Bildoptimierung:** Integrierte Werkzeuge zur Verbesserung der Scanqualität (Deskew, Graustufen, Rotation, Kontrast/Helligkeit).
 - **🧠 KI-Restauration (Gemini 3.1 Pro Preview):** Nutzt "Original-First" Logik. Die KI entscheidet zwischen einer direkten Reparatur (Repair) oder einer digitalen Neukonstruktion (Recreate), um maximale Qualität zu garantieren.
 - **🎨 KI-Design-Assistent (Gemini 3 Flash Preview):** Ein interaktiver Begleiter, der auf Text- und Sprachbefehle (Voice-to-Text) reagiert, um das Design anzupassen oder Inhalte zu ändern.
@@ -14,7 +14,8 @@ Menu Magic ist eine smarte Web-App, die schlecht gescannte PDF-Speisekarten in h
 - **⭐ Prioritäten-System:** Markiere Menüpunkte mit Prioritäten (Hoch, Mittel, Niedrig), um sie visuell hervorzuheben.
 - **📱 Responsives Design:** Kompakte und für alle Bildschirmgrößen optimierte Benutzeroberfläche, die ohne unnötiges Scrollen auskommt.
 - **🌈 Farbpaletten-Generator:** Automatische Generierung von 3 passenden Farbpaletten basierend auf dem Stil des Restaurants.
-- **🛡️ Ganzheitliches Fehlermanagement:** Zentralisierte Fehlerbehandlung mit `AppErrorFactory`, strukturierten API-Antworten und einer globalen React Error Boundary für maximale Stabilität.
+- **🛡️ Ganzheitliches Fehlermanagement:** Zentralisierte Fehlerbehandlung mit `AppErrorFactory`, strukturierten API-Antworten und nativen Next.js Error Boundaries (`error.tsx`, `global-error.tsx`) für maximale Stabilität.
+- **📈 Granulare Fortschrittsanzeige:** Detaillierte Visualisierung des Verarbeitungsprozesses (PDF-zu-Bild, KI-Strukturanalyse, Vorschau-Generierung, Export-Abschluss).
 - **👁️ Vorher/Nachher-Vergleich:** Ein interaktiver Slider ermöglicht den direkten Vergleich zwischen dem Original-Scan und dem optimierten Ergebnis.
 - **🌐 Multi-Export:** Generiert moderne, responsive HTML-Speisekarten und druckfertige PDF-Dokumente.
 
@@ -90,18 +91,18 @@ Bevor du mit dem Setup beginnst, stelle sicher, dass folgende Tools auf deinem S
 1. **Upload:** Der Nutzer lädt ein PDF hoch.
 2. **Analyse (`/api/upload`):** Das Backend prüft das PDF auf Probleme (DPI, Passwortschutz, Beschädigungen) und gibt strukturierte Warnungen zurück.
 3. **Bestätigung (`ConfirmModal`):** Der Nutzer sieht die Warnungen, passt ggf. Modell/Stil an und kann die Konfiguration als Preset speichern. Blockierende Fehler erfordern einen Klick auf "Trotzdem bestätigen".
-4. **Optimierung (`/api/optimize`):** Nach der Bestätigung startet die eigentliche KI-Verarbeitung. Der Nutzer hat ein 5-Sekunden-Fenster, um den Vorgang abzubrechen.
-5. **Persistenz:** Presets werden standardmäßig lokal im Browser (`localStorage` unter `menuMagic.presets`) gespeichert. Bei authentifizierten Nutzern können diese über `/api/presets` in der Cloud gesichert werden.
+4. **Optimierung & KI-Analyse:** Nach der Bestätigung startet die Verarbeitung. Der Fortschritt wird in Echtzeit visualisiert.
+5. **Persistenz:** Sitzungen werden automatisch in der IndexedDB gespeichert. Die Galerie auf der Startseite ermöglicht das Wiederaufnehmen vergangener Arbeiten. Presets können lokal oder (geplant) in der Cloud gesichert werden.
 
 ## 🔍 Troubleshooting & Fehlercodes
 
 Die App nutzt ein zentralisiertes, robustes Fehlersystem (`lib/error-handler.ts`). Sollte ein Fehler auftreten, wird dieser mit einem spezifischen Code und einer hilfreichen Nachricht angezeigt. Alle API-Routen verwenden strukturierte JSON-Antworten über `createErrorResponse`.
 
 - **API_ERROR / GEMINI_ERROR:** Problem bei der Kommunikation mit der KI. Prüfe deinen API-Key und das Kontingent.
-- **TIMEOUT:** Die Verarbeitung hat das Zeitlimit überschritten. Für die KI-Analyse (`/api/analyze`) ist ein großzügiges Timeout von 5 Minuten konfiguriert, um auch komplexe PDFs verarbeiten zu können. Sollte dieses Limit dennoch überschritten werden, kann der Nutzer den Vorgang einfach neu starten.
+- **TIMEOUT:** Die Verarbeitung hat das Zeitlimit überschritten. Für die KI-Analyse (`/api/analyze`) ist ein Timeout von 3 Minuten konfiguriert. Sollte dieses Limit überschritten werden, kann der Nutzer den Vorgang einfach neu starten.
 - **UNAUTHORIZED:** Der Zugriff wurde verweigert (z.B. fehlender API-Key oder abgelaufene Sitzung).
 - **VALIDATION_ERROR:** Die bereitgestellten Daten (z.B. PDF-Format) sind ungültig.
-- **FRONTEND_CRASH:** Ein kritischer Fehler im Browser. Die globale `ErrorBoundary` fängt diesen ab, schützt die Nutzerdaten und bietet einen Recovery-Button.
+- **FRONTEND_CRASH:** Ein kritischer Fehler im Browser. Die nativen Error Boundaries fangen diesen ab, schützen die Nutzerdaten und bieten einen Recovery-Button (Retry).
 - **RATE_LIMIT:** Zu viele Anfragen. Die App nutzt automatischen "Exponential Backoff" für Wiederholungsversuche.
 - **INVALID_CONTENT_TYPE:** Die API-Route hat unerwartete Daten erhalten (z.B. HTML statt JSON). Dies wird nun sicher abgefangen.
 

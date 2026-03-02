@@ -17,6 +17,9 @@ Der Prozess ist in vier Hauptphasen unterteilt:
     - **KI-Design-Agent:** Iterative Anpassung via Text/Sprache.
     - **Direkt-Editor:** Manuelle Feinjustierung.
     - **Export:** Generierung von HTML/CSS und PDF-Dokumenten.
+5.  **Persistence & Gallery:**
+    - **Session Persistence:** Automatisches Speichern des Fortschritts in der IndexedDB (`idb-keyval`).
+    - **Gallery:** Übersicht über vergangene Sitzungen zum Wiederaufnehmen oder Verwalten.
 
 ## 2. Datenfluss-Diagramm
 
@@ -41,10 +44,11 @@ graph TD
 ## 3. Fehlerbehandlung & Resilienz
 
 - **Exponential Backoff:** Automatische Wiederholung bei Rate-Limits oder Serverfehlern der Gemini API.
-- **Generöse Timeouts:** Die KI-Analyse (`/api/analyze`) verfügt über ein 5-Minuten-Timeout (`maxDuration = 300`), um auch bei sehr großen Speisekarten nicht vorzeitig abzubrechen. Ein interner `Promise.race` Mechanismus sorgt für kontrollierte Fehlermeldungen, bevor Serverless-Limits greifen.
+- **Generöse Timeouts:** Die KI-Analyse (`/api/analyze`) verfügt über ein 3-Minuten-Timeout (`maxDuration = 300` auf Server-Ebene, 180s Client-Timeout), um auch bei sehr großen Speisekarten nicht vorzeitig abzubrechen. Ein interner `Promise.race` Mechanismus sorgt für kontrollierte Fehlermeldungen, bevor Serverless-Limits greifen.
 - **Strikte API-Validierung:** Alle API-Antworten werden auf korrekten `Content-Type` (JSON) geprüft. Unerwartete HTML-Fehlerseiten des Servers führen nicht mehr zu Abstürzen, sondern zu sauberen Fehlermeldungen.
-- **Global Error Boundary:** Fängt Frontend-Crashes ab und ermöglicht einen sicheren Neustart ohne Datenverlust.
-- **Fallback-Modus:** Bei kompletten Analysefehlern wird ein Basis-Menü generiert, um den Workflow nicht zu unterbrechen.
+- **Global Error Boundary:** Fängt Frontend-Crashes ab und ermöglicht einen sicheren Neustart ohne Datenverlust über Next.js `error.tsx` und `global-error.tsx`.
+- **Session Persistence:** Durch die Nutzung von IndexedDB bleiben Sitzungen auch nach einem Tab-Schluss oder Reload erhalten. Die Galerie ermöglicht das Verwalten dieser Sitzungen.
+- **Granulare Fortschrittsanzeige:** Der Verarbeitungsprozess wird in detaillierten Schritten (PDF-zu-Bild, KI-Strukturanalyse, Vorschau-Generierung, Export-Abschluss) visualisiert.
 - **Zentrales Logging (`lib/logger.ts`):** Jede Anfrage erhält eine eindeutige `requestId` zur Nachverfolgung. Das Loglevel kann über die Umgebungsvariable `NEXT_PUBLIC_LOG_LEVEL` gesteuert werden, um im Produktionsbetrieb (z.B. mit Level `warn`) Ressourcen zu schonen.
 
 ## 4. API & Integrationen

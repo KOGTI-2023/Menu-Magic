@@ -32,11 +32,11 @@ function mergeMenuData(target: MenuData, source: MenuData) {
 export async function POST(req: NextRequest) {
   const requestId = crypto.randomUUID();
   
-  // Create a timeout promise that rejects after 280 seconds (leaving 20s buffer before Vercel kills it)
+  // Create a timeout promise that rejects after 180 seconds (3 minutes)
   const timeoutPromise = new Promise<never>((_, reject) => {
     setTimeout(() => {
-      reject(new Error("TIMEOUT: Die KI-Analyse hat zu lange gedauert. Bitte versuchen Sie es erneut."));
-    }, 280000);
+      reject(new Error("TIMEOUT: Die KI-Analyse hat zu lange gedauert (über 3 Minuten). Bitte versuchen Sie es erneut."));
+    }, 180000);
   });
 
   try {

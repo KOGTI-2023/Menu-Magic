@@ -2,7 +2,8 @@
 
 ## Features
 
-- [ ] **User Authentication:** Allow users to create accounts to save and manage their generated menus.
+- [x] **Session Persistence & Gallery:** Progress is automatically saved to IndexedDB, and a gallery allows users to resume past sessions.
+- [ ] **User Authentication:** Allow users to create accounts to save and manage their generated menus in the cloud.
 - [ ] **Database Integration:** Store processed menus, user preferences, and custom themes in a database (e.g., Firebase Firestore, PostgreSQL).
 - [ ] **More Export Formats:** Support exporting to Word (.docx), plain HTML/CSS zip, or direct integration with POS systems.
 - [ ] **Advanced Image Editing:** Allow users to crop, rotate, or manually adjust brightness/contrast of the uploaded PDF pages before AI processing.
@@ -16,6 +17,8 @@
 - [x] **next/image Migration:** Migrated `<img>` tags to `next/image` in `app/page.tsx` for optimized image loading.
 - [x] **Holistic Error Handling:** Implemented a centralized error handling strategy with `AppErrorFactory`, `ApiResponse` interfaces, and a global React Error Boundary.
 - [x] **API Consistency:** Updated all API routes (`/api/upload`, `/api/optimize`, `/api/presets`, `/api/analyze`) to use a consistent response format with error codes and user-friendly messages.
+- [x] **Granular Progress Indicators:** Processing steps are now visualized with detailed status messages.
+- [x] **AI Analysis Timeout:** Implemented a 3-minute timeout for the analysis API with retry options.
 - [ ] **Unit and E2E Testing:** Add comprehensive tests using Jest and Cypress/Playwright to ensure reliability of the core extraction and rendering logic.
 - [x] **Logging Integration:** Integrated structured logging via `lib/logger.ts` across both client and server.
 - [ ] **Accessibility (a11y):** Improve keyboard navigation, ARIA labels, and screen reader support across the entire application.
