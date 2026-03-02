@@ -26,30 +26,61 @@ Menu Magic ist eine smarte Web-App, die schlecht gescannte PDF-Speisekarten in h
 - **KI-Integration:** @google/genai (Gemini 3.1 Pro Preview für Extraktion, Gemini 3 Flash Preview für Assistenz)
 - **Observability:** Strukturiertes Logging mit anpassbaren Logleveln (`lib/logger.ts`).
 
+## 📋 Voraussetzungen
+
+Bevor du mit dem Setup beginnst, stelle sicher, dass folgende Tools auf deinem System installiert sind:
+
+- **Git:** Zum Klonen des Repositories.
+- **Python 3.x:** Für die virtuelle Umgebung (`venv`).
+- **Node.js (v18+) & npm:** Für die Ausführung der Next.js App.
+
 ## ⚙️ Setup & Installation
 
 1.  **Repository klonen:**
 
     ```bash
-    git clone <repository-url>
-    cd menu-magic
+    git clone https://github.com/KOGTI-2023/Menu-Magic.git
+    cd Menu-Magic
     ```
 
-2.  **Abhängigkeiten installieren:**
+2.  **Virtuelle Umgebung einrichten:**
+
+    Um eine saubere Installation zu gewährleisten, nutzen wir eine virtuelle Umgebung:
+
+    ```bash
+    # Virtuelle Umgebung erstellen
+    python -m venv venv
+
+    # Aktivieren (Windows)
+    # venv\Scripts\activate
+
+    # Aktivieren (macOS/Linux)
+    source venv/bin/activate
+
+    # Anforderungen installieren
+    pip install -r requirements.txt
+    ```
+
+3.  **Abhängigkeiten installieren:**
 
     ```bash
     npm install
     ```
 
-3.  **Umgebungsvariablen konfigurieren:**
-    Erstelle eine `.env.local` Datei im Hauptverzeichnis:
+4.  **Umgebungsvariablen konfigurieren:**
 
-    ```env
-    NEXT_PUBLIC_GEMINI_API_KEY=dein_api_schluessel_hier
-    NEXT_PUBLIC_LOG_LEVEL=debug # Optional: debug, info, warn, error, none
+    Kopiere die Beispiel-Datei und trage deinen Gemini API-Key ein:
+
+    ```bash
+    cp .env.example .env.local
     ```
 
-4.  **Entwicklungsserver starten:**
+    Öffne danach die `.env.local` und ergänze deine Keys:
+    ```env
+    NEXT_PUBLIC_GEMINI_API_KEY=dein_api_schluessel_hier
+    ```
+
+5.  **Entwicklungsserver starten:**
     ```bash
     npm run dev
     ```
