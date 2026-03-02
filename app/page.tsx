@@ -266,6 +266,19 @@ export default function Home() {
           body: formData,
         });
 
+        if (!res.ok) {
+          const text = await res.text();
+          logger.error(`Upload failed with status ${res.status}:`, text.substring(0, 200));
+          throw new Error(`Server-Fehler (${res.status}): Bitte versuchen Sie es später erneut.`);
+        }
+
+        const contentType = res.headers.get("content-type");
+        if (!contentType || !contentType.includes("application/json")) {
+          const text = await res.text();
+          logger.error("Expected JSON but received:", text.substring(0, 200));
+          throw new Error("Ungültige Antwort vom Server erhalten.");
+        }
+
         const result = await res.json();
 
         if (!res.ok || !result.success) {
@@ -338,6 +351,19 @@ export default function Home() {
           timeout: 20000 // 20s timeout for optimization start
         });
 
+        if (!res.ok) {
+          const text = await res.text();
+          logger.error(`Optimization start failed with status ${res.status}:`, text.substring(0, 200));
+          throw new Error(`Server-Fehler (${res.status}): Bitte versuchen Sie es später erneut.`);
+        }
+
+        const contentType = res.headers.get("content-type");
+        if (!contentType || !contentType.includes("application/json")) {
+          const text = await res.text();
+          logger.error("Expected JSON from /api/optimize but received:", text.substring(0, 200));
+          throw new Error("Ungültige Antwort vom Server erhalten.");
+        }
+
         const result = await res.json();
         logger.info("Optimization API response received:", result);
 
@@ -400,6 +426,19 @@ export default function Home() {
         }),
         timeout: 180000 // 3 minute timeout for Gemini analysis
       });
+
+      if (!response.ok) {
+        const text = await response.text();
+        logger.error(`AI analysis failed with status ${response.status}:`, text.substring(0, 200));
+        throw new Error(`Server-Fehler (${response.status}): Die KI-Analyse konnte nicht abgeschlossen werden.`);
+      }
+
+      const contentType = response.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        const text = await response.text();
+        logger.error("Expected JSON from /api/analyze but received:", text.substring(0, 200));
+        throw new Error("Ungültige Antwort vom Server erhalten.");
+      }
 
       const result = await response.json();
       logger.info("AI analysis response received:", result.success ? "Success" : "Failure");

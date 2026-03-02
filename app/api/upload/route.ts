@@ -6,6 +6,14 @@ import { logger } from '@/lib/logger';
 // Handles file upload, runs server-side validations, and returns structured warnings.
 export async function POST(req: Request) {
   try {
+    const contentType = req.headers.get('content-type') || '';
+    if (!contentType.includes('multipart/form-data')) {
+      return NextResponse.json(
+        createErrorResponse("INVALID_CONTENT_TYPE", "Erwartet multipart/form-data"),
+        { status: 400 }
+      );
+    }
+
     const formData = await req.formData();
     const file = formData.get('file') as File;
 
