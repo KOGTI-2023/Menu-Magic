@@ -674,15 +674,34 @@ export default function Home() {
         <motion.div 
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-center space-y-4"
+          className="text-center space-y-6"
         >
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 backdrop-blur-md text-xs font-medium text-indigo-300 mb-2">
-            <Sparkles className="h-3 w-3" />
-            <span>Powered by {model.includes('flash') ? 'Gemini 3 Flash AI' : 'Gemini 3.1 Pro AI'}</span>
+          <div className="flex flex-col items-center gap-4">
+            <motion.div
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ duration: 0.5 }}
+              className="relative w-16 h-16 md:w-20 md:h-20"
+            >
+              <Image 
+                src="/assets/logo/logo-mark.svg" 
+                alt="Menü Magie Logo" 
+                fill 
+                className="object-contain drop-shadow-[0_0_15px_rgba(99,102,241,0.5)]"
+                priority
+                referrerPolicy="no-referrer"
+              />
+            </motion.div>
+            <div className="space-y-2">
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 backdrop-blur-md text-xs font-medium text-indigo-300 mb-2">
+                <Sparkles className="h-3 w-3" />
+                <span>Powered by {model.includes('flash') ? 'Gemini 3 Flash AI' : 'Gemini 3.1 Pro AI'}</span>
+              </div>
+              <h1 className="text-4xl md:text-6xl font-black tracking-tighter bg-gradient-to-b from-white to-white/40 bg-clip-text text-transparent">
+                Menü Magie
+              </h1>
+            </div>
           </div>
-          <h1 className="text-4xl md:text-6xl font-black tracking-tighter bg-gradient-to-b from-white to-white/40 bg-clip-text text-transparent">
-            Menü Magie
-          </h1>
           <p className="text-base md:text-lg text-zinc-400 max-w-2xl mx-auto font-light leading-relaxed">
             Verwandle unleserliche PDF-Scans in professionelle, hochglänzende und druckfertige Speisekarten – mit nur einem Klick.
           </p>
@@ -1471,7 +1490,16 @@ export default function Home() {
       </main>
 
         {/* Footer */}
-        <footer className="relative z-10 py-12 text-center border-t border-white/5">
+        <footer className="relative z-10 py-12 text-center border-t border-white/5 flex flex-col items-center gap-4">
+          <div className="relative w-8 h-8 opacity-50 grayscale hover:grayscale-0 hover:opacity-100 transition-all duration-500">
+            <Image 
+              src="/assets/logo/logo-mark.svg" 
+              alt="Menü Magie Logo" 
+              fill 
+              className="object-contain"
+              referrerPolicy="no-referrer"
+            />
+          </div>
           <p className="text-zinc-600 text-sm font-light tracking-widest uppercase">
             &copy; 2026 Menü Magie &bull; Powered by Google Gemini
           </p>

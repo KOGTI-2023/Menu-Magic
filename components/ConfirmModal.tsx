@@ -71,11 +71,22 @@ export function ConfirmModal({
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px] bg-zinc-950 border-zinc-800 text-zinc-200">
-        <DialogHeader>
-          <DialogTitle className="text-2xl font-bold text-white">Einstellungen bestätigen</DialogTitle>
-          <DialogDescription className="text-zinc-400">
-            Bitte überprüfen Sie die Konfiguration vor der Optimierung.
-          </DialogDescription>
+        <DialogHeader className="flex flex-row items-center gap-4 space-y-0">
+          <div className="relative w-10 h-10 shrink-0">
+            <Image 
+              src="/assets/logo/logo-mark.svg" 
+              alt="Menü Magie Logo" 
+              fill 
+              className="object-contain"
+              referrerPolicy="no-referrer"
+            />
+          </div>
+          <div className="flex flex-col gap-1">
+            <DialogTitle className="text-2xl font-bold text-white">Einstellungen bestätigen</DialogTitle>
+            <DialogDescription className="text-zinc-400">
+              Bitte überprüfen Sie die Konfiguration vor der Optimierung.
+            </DialogDescription>
+          </div>
         </DialogHeader>
 
         <div className="space-y-6 py-4">
