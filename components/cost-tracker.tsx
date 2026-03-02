@@ -16,17 +16,25 @@ export interface TokenUsage {
 const COST_PER_1M_INPUT = 1.25;
 const COST_PER_1M_OUTPUT = 3.75;
 
-export function CostTracker({ usage, sessionUsage, isProcessing }: { usage: TokenUsage, sessionUsage: TokenUsage, isProcessing: boolean }) {
+export function CostTracker({ usage, sessionUsage, isProcessing, model }: { usage: TokenUsage, sessionUsage: TokenUsage, isProcessing: boolean, model: string }) {
   const [isOpen, setIsOpen] = useState(false);
 
-  const calculateCost = (u: TokenUsage) => {
-    const inputCost = (u.promptTokenCount / 1000000) * COST_PER_1M_INPUT;
-    const outputCost = (u.candidatesTokenCount / 1000000) * COST_PER_1M_OUTPUT;
+  const calculateCost = (u: TokenUsage, modelName: string) => {
+    let inputPrice = 1.25;
+    let outputPrice = 5.00;
+
+    if (modelName.includes('flash')) {
+      inputPrice = 0.075;
+      outputPrice = 0.30;
+    }
+
+    const inputCost = (u.promptTokenCount / 1000000) * inputPrice;
+    const outputCost = (u.candidatesTokenCount / 1000000) * outputPrice;
     return (inputCost + outputCost).toFixed(4);
   };
 
-  const currentCost = calculateCost(usage);
-  const totalCost = calculateCost(sessionUsage);
+  const currentCost = calculateCost(usage, model);
+  const totalCost = calculateCost(sessionUsage, model);
   const totalCostNum = parseFloat(totalCost);
   const warningThreshold = parseFloat(process.env.NEXT_PUBLIC_COST_WARNING_THRESHOLD || "0.50");
   const isWarning = totalCostNum >= warningThreshold;

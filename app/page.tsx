@@ -44,8 +44,9 @@ import { cn } from "@/lib/utils";
 import { ConfirmModal, Warning, Thumbnail, Config } from "@/components/ConfirmModal";
 import { getLocalPresets, saveLocalPreset, getActivePreset } from "@/lib/presets";
 import { IntroSplash } from "@/components/IntroSplash";
+import { saveSession, getSession, getAllSessionsMetadata, deleteSession, SessionMetadata } from "@/lib/storage";
 
-type Step = "UPLOAD" | "OPTIMIZE" | "PROCESS" | "RESULT";
+type Step = "UPLOAD" | "OPTIMIZE" | "PROCESS" | "RESULT" | "GALLERY";
 
 export default function Home() {
   const [step, setStep] = useState<Step>("UPLOAD");
@@ -88,6 +89,10 @@ export default function Home() {
   const [cancelTimeoutId, setCancelTimeoutId] = useState<NodeJS.Timeout | null>(null);
   const [isCancelling, setIsCancelling] = useState(false);
   const [showIntro, setShowIntro] = useState(true);
+  
+  // Storage State
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [gallerySessions, setGallerySessions] = useState<SessionMetadata[]>([]);
 
   useEffect(() => {
     // Check if user has already seen the intro this session
@@ -106,7 +111,27 @@ export default function Home() {
       setTheme(preset.config.style as MenuTheme);
       setModalConfig(preset.config);
     }
+    
+    // Load gallery sessions on mount
+    getAllSessionsMetadata().then(setGallerySessions);
   }, []);
+
+  // Save session state when important data changes
+  useEffect(() => {
+    if (sessionId && file) {
+      saveSession({
+        id: sessionId,
+        fileName: file.name,
+        updatedAt: Date.now(),
+        step,
+        optimizedImages,
+        menuData
+      }).then(() => {
+        // Update gallery list
+        getAllSessionsMetadata().then(setGallerySessions);
+      });
+    }
+  }, [sessionId, file, step, optimizedImages, menuData]);
 
   const addNotification = useCallback((message: string, type: 'info' | 'error' | 'success' = 'info') => {
     const id = Math.random().toString(36).substring(7);
@@ -256,6 +281,7 @@ export default function Home() {
       setError(null);
       setIsProcessing(true);
       setStatus("Analysiere PDF...");
+      setSessionId(Math.random().toString(36).substring(2) + Date.now().toString(36));
 
       try {
         const formData = new FormData();
@@ -397,8 +423,9 @@ export default function Home() {
     setIsConfirmModalOpen(true);
   };
 
-  const handleProcess = useCallback(async () => {
-    if (optimizedImages.length === 0) {
+  const handleProcess = useCallback(async (imagesToProcess?: string[]) => {
+    const images = imagesToProcess || optimizedImages;
+    if (images.length === 0) {
       logger.warn("handleProcess called with 0 optimized images");
       return;
     }
@@ -408,7 +435,7 @@ export default function Home() {
     setError(null);
     setProgress(10);
     setStatus("Bereite Bilder für die Analyse vor...");
-    logger.info(`Starting AI analysis for ${optimizedImages.length} pages...`);
+    logger.info(`Starting AI analysis for ${images.length} pages...`);
 
     try {
       setProgress(40);
@@ -419,7 +446,7 @@ export default function Home() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          images: optimizedImages,
+          images: images,
           model,
           detailLevel,
           thinkingLevel
@@ -518,7 +545,7 @@ export default function Home() {
       
       if (autoProceed) {
         logger.info("Auto-proceeding to AI analysis...");
-        handleProcess();
+        handleProcess(images);
       }
     } catch (err: any) {
       logger.error("Optimization failed:", err);
@@ -601,7 +628,7 @@ export default function Home() {
       )}
 
       <div className={cn("transition-opacity duration-1000", !showIntro ? "opacity-100" : "opacity-0")}>
-        <CostTracker usage={lastUsage} sessionUsage={sessionUsage} isProcessing={isProcessing || isAiProcessing} />
+        <CostTracker usage={lastUsage} sessionUsage={sessionUsage} isProcessing={isProcessing || isAiProcessing} model={model} />
       
       {/* Notifications */}
       <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-3">
@@ -644,7 +671,7 @@ export default function Home() {
         >
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 backdrop-blur-md text-xs font-medium text-indigo-300 mb-2">
             <Sparkles className="h-3 w-3" />
-            <span>Powered by Gemini 3.1 AI</span>
+            <span>Powered by {model.includes('flash') ? 'Gemini 3 Flash AI' : 'Gemini 3.1 Pro AI'}</span>
           </div>
           <h1 className="text-4xl md:text-6xl font-black tracking-tighter bg-gradient-to-b from-white to-white/40 bg-clip-text text-transparent">
             Menü Magie
@@ -762,8 +789,119 @@ export default function Home() {
                       </Select>
                     </div>
                   </div>
+
+                  {gallerySessions.length > 0 && (
+                    <div className="pt-6 border-t border-white/5 flex flex-col sm:flex-row gap-4 justify-center">
+                      <Button 
+                        variant="outline" 
+                        className="bg-zinc-900/50 border-white/10 hover:bg-white/10 text-zinc-300"
+                        onClick={() => setStep("GALLERY")}
+                      >
+                        <History className="w-4 h-4 mr-2" />
+                        Galerie ({gallerySessions.length})
+                      </Button>
+                      
+                      {gallerySessions[0] && (
+                        <Button 
+                          variant="default" 
+                          className="bg-indigo-500/20 text-indigo-300 hover:bg-indigo-500/30 border border-indigo-500/30"
+                          onClick={async () => {
+                            const session = await getSession(gallerySessions[0].id);
+                            if (session) {
+                              setSessionId(session.id);
+                              setOptimizedImages(session.optimizedImages || []);
+                              setMenuData(session.menuData);
+                              setStep(session.step === 'UPLOAD' ? 'OPTIMIZE' : session.step);
+                              addNotification("Letzte Sitzung wiederhergestellt", "success");
+                            }
+                          }}
+                        >
+                          <RefreshCw className="w-4 h-4 mr-2" />
+                          Letzte Sitzung fortsetzen
+                        </Button>
+                      )}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
+            </motion.div>
+          )}
+
+          {step === "GALLERY" && (
+            <motion.div
+              key="gallery"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 1.05 }}
+              className="max-w-4xl mx-auto w-full"
+            >
+              <div className="flex items-center justify-between mb-8">
+                <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+                  <History className="w-6 h-6 text-indigo-400" />
+                  Vergangene Sitzungen
+                </h2>
+                <Button 
+                  variant="outline" 
+                  className="bg-zinc-900/50 border-white/10 hover:bg-white/10 text-zinc-300"
+                  onClick={() => setStep("UPLOAD")}
+                >
+                  <ChevronLeft className="w-4 h-4 mr-2" />
+                  Zurück
+                </Button>
+              </div>
+
+              {gallerySessions.length === 0 ? (
+                <div className="text-center py-20 bg-zinc-900/40 backdrop-blur-xl border border-white/10 rounded-3xl">
+                  <History className="w-12 h-12 text-zinc-600 mx-auto mb-4" />
+                  <p className="text-zinc-400">Keine vergangenen Sitzungen gefunden.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {gallerySessions.map(session => (
+                    <Card key={session.id} className="bg-zinc-900/40 backdrop-blur-xl border-white/10 overflow-hidden group hover:border-indigo-500/50 transition-all">
+                      {session.thumbnail && (
+                        <div className="h-40 w-full relative overflow-hidden bg-black/50">
+                          <img 
+                            src={`data:image/jpeg;base64,${session.thumbnail}`} 
+                            alt="Thumbnail" 
+                            className="w-full h-full object-cover opacity-70 group-hover:opacity-100 transition-opacity"
+                          />
+                          <div className="absolute top-2 right-2 bg-black/60 backdrop-blur-md px-2 py-1 rounded-md text-xs font-medium text-white border border-white/10">
+                            {session.pageCount} Seiten
+                          </div>
+                        </div>
+                      )}
+                      <CardContent className="p-5">
+                        <h3 className="font-medium text-white truncate mb-1" title={session.fileName}>{session.fileName}</h3>
+                        <p className="text-xs text-zinc-500 mb-4">
+                          {new Date(session.updatedAt).toLocaleString('de-DE')}
+                        </p>
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs px-2 py-1 rounded-full bg-white/5 text-zinc-400 border border-white/5">
+                            Status: {session.step}
+                          </span>
+                          <Button 
+                            size="sm" 
+                            className="bg-indigo-600 hover:bg-indigo-500 text-white"
+                            onClick={async () => {
+                              const fullSession = await getSession(session.id);
+                              if (fullSession) {
+                                setSessionId(fullSession.id);
+                                setOptimizedImages(fullSession.optimizedImages || []);
+                                setMenuData(fullSession.menuData);
+                                setStep(fullSession.step === 'UPLOAD' ? 'OPTIMIZE' : fullSession.step);
+                                addNotification("Sitzung geladen", "success");
+                              }
+                            }}
+                          >
+                            Laden
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
             </motion.div>
           )}
 
@@ -970,7 +1108,7 @@ export default function Home() {
               </div>
               
               <div className="space-y-4">
-                <h2 className="text-3xl font-bold text-white tracking-tight">{status}</h2>
+                <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-white tracking-tight max-w-3xl mx-auto px-4">{status}</h2>
                 <div className="max-w-md mx-auto">
                   <Progress value={progress} className="h-1 bg-zinc-800" />
                 </div>
