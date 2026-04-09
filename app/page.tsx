@@ -1037,7 +1037,7 @@ export default function Home() {
                     <div className="pt-6 space-y-3">
                       <Button 
                         className="w-full bg-indigo-600 hover:bg-indigo-500 h-12 text-lg font-bold shadow-[0_0_20px_rgba(99,102,241,0.3)] disabled:opacity-50 disabled:cursor-not-allowed" 
-                        onClick={handleProcess}
+                        onClick={() => handleProcess()}
                         disabled={isProcessing || optimizedImages.length === 0}
                       >
                         {isProcessing ? (

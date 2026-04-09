@@ -1,12 +1,8 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
-import dynamic from "next/dynamic";
-import { motion, AnimatePresence, useReducedMotion } from "motion/react";
+import { motion, AnimatePresence } from "motion/react";
 import Image from "next/image";
-
-// Lazy load Lottie to reduce initial JS bundle size
-const Lottie = dynamic(() => import("lottie-react"), { ssr: false });
 
 interface IntroSplashProps {
   autoPlay?: boolean;
@@ -22,20 +18,6 @@ export function IntroSplash({
   durationMs = 5000,
 }: IntroSplashProps) {
   const [isVisible, setIsVisible] = useState(autoPlay);
-  const [lottieData, setLottieData] = useState<any>(null);
-  const prefersReducedMotion = useReducedMotion();
-
-  useEffect(() => {
-    // In a real scenario, fetch the Lottie JSON from public/assets/intro/intro-animation.lottie.json
-    // For this component, we simulate the fetch or use a fallback if it fails.
-    fetch('/assets/intro/intro-animation.lottie.json')
-      .then((res) => res.json())
-      .then((data) => setLottieData(data))
-      .catch(() => {
-        // Fallback or ignore if file doesn't exist yet
-        console.warn("Lottie animation not found, falling back to static logo.");
-      });
-  }, []);
 
   const handleComplete = useCallback(() => {
     setIsVisible(false);
@@ -69,29 +51,19 @@ export function IntroSplash({
         <div className="relative flex flex-col items-center max-w-md w-full px-6 text-center">
           {/* Animation Container */}
           <div className="w-48 h-48 mb-8 relative flex items-center justify-center">
-            {prefersReducedMotion || !lottieData ? (
-              <motion.div
-                initial={{ scale: 0.9, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ duration: 1 }}
-              >
-                <Image
-                  src="/assets/logo/logo-mark.svg"
-                  alt="Menü Magie Logo"
-                  width={120}
-                  height={120}
-                  priority
-                />
-              </motion.div>
-            ) : (
-              <Lottie
-                animationData={lottieData}
-                loop={false}
-                autoplay={true}
-                className="w-full h-full"
-                aria-hidden="true"
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ duration: 1 }}
+            >
+              <Image
+                src="/assets/logo/logo-mark.svg"
+                alt="Menü Magie Logo"
+                width={120}
+                height={120}
+                priority
               />
-            )}
+            </motion.div>
           </div>
 
           {/* Typography */}
