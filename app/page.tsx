@@ -35,7 +35,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { convertPdfToImages, OptimizationOptions } from "@/lib/pdf-utils";
 import { logger } from "@/lib/logger";
-import { fetchWithTimeout } from "@/lib/error-handler";
+import { fetchWithTimeout, parseApiError } from "@/lib/error-handler";
 import { extractMenuData, MenuData } from "@/lib/gemini";
 import { MenuPreview, MenuTheme } from "@/components/menu-preview";
 import { CostTracker, TokenUsage } from "@/components/cost-tracker";
@@ -191,20 +191,25 @@ export default function Home() {
     setIsAiProcessing(true);
     setError(null);
     try {
-      const response = await fetch('/api/assistant', {
+      const response = await fetchWithTimeout('/api/assistant', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           currentData: menuData,
           prompt: aiCommand,
           thinkingLevel: "BALANCED" // Assistant uses moderate reasoning
-        })
+        }),
+        timeout: 60000
       });
+
+      if (!response.ok) {
+        throw new Error(await parseApiError(response, "Fehler bei der Kommunikation mit dem KI-Assistenten"));
+      }
 
       const result = await response.json();
       
-      if (!response.ok || !result.success) {
-        throw new Error(result.error?.message || "Fehler bei der Server-Kommunikation");
+      if (!result.success) {
+        throw new Error(result.error?.message || "Fehler bei der Server-Verarbeitung");
       }
       
       if (result.usage) {
@@ -238,19 +243,24 @@ export default function Home() {
     setIsAiProcessing(true);
     setError(null);
     try {
-      const response = await fetch('/api/assistant', {
+      const response = await fetchWithTimeout('/api/assistant', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           currentData: menuData,
           prompt: "Überarbeite alle Gerichte in dieser Speisekarte und hebe die Detailstufe auf 'Premium' an. Formuliere die Beschreibungen extrem appetitanregend, hochklassig und professionell. Verändere keine Preise oder Zutaten, sondern nur die werbliche Beschreibung."
-        })
+        }),
+        timeout: 60000
       });
+
+      if (!response.ok) {
+        throw new Error(await parseApiError(response, "Fehler beim Premium-Upgrade der Texte"));
+      }
 
       const result = await response.json();
       
-      if (!response.ok || !result.success) {
-        throw new Error(result.error?.message || "Fehler bei der Server-Kommunikation");
+      if (!result.success) {
+        throw new Error(result.error?.message || "Fehler bei der Server-Verarbeitung");
       }
       
       if (result.usage) {
@@ -290,15 +300,14 @@ export default function Home() {
         const formData = new FormData();
         formData.append('file', selectedFile);
 
-        const res = await fetch('/api/upload', {
+        const res = await fetchWithTimeout('/api/upload', {
           method: 'POST',
           body: formData,
+          timeout: 60000
         });
 
         if (!res.ok) {
-          const text = await res.text();
-          logger.error(`Upload failed with status ${res.status}:`, text.substring(0, 200));
-          throw new Error(`Server-Fehler (${res.status}): Bitte versuchen Sie es später erneut.`);
+          throw new Error(await parseApiError(res, "Fehler beim Hochladen der Datei."));
         }
 
         const contentType = res.headers.get("content-type");
@@ -381,9 +390,7 @@ export default function Home() {
         });
 
         if (!res.ok) {
-          const text = await res.text();
-          logger.error(`Optimization start failed with status ${res.status}:`, text.substring(0, 200));
-          throw new Error(`Server-Fehler (${res.status}): Bitte versuchen Sie es später erneut.`);
+          throw new Error(await parseApiError(res, "Fehler beim Starten der Optimierung."));
         }
 
         const contentType = res.headers.get("content-type");
@@ -396,9 +403,8 @@ export default function Home() {
         const result = await res.json();
         logger.info("Optimization API response received:", result);
 
-        if (!res.ok || !result.success) {
-          const errorMsg = result.error?.message || result.error || 'Fehler bei der Optimierung';
-          throw new Error(errorMsg);
+        if (!result.success) {
+          throw new Error(result.error?.message || result.error || 'Fehler bei der Optimierung');
         }
 
         // Proceed to actual processing
@@ -458,24 +464,19 @@ export default function Home() {
       });
 
       if (!response.ok) {
-        const text = await response.text();
-        logger.error(`AI analysis failed with status ${response.status}:`, text.substring(0, 200));
-        throw new Error(`Server-Fehler (${response.status}): Die KI-Analyse konnte nicht abgeschlossen werden.`);
+        throw new Error(await parseApiError(response, "Die KI-Analyse konnte nicht abgeschlossen werden."));
       }
 
       const contentType = response.headers.get("content-type");
       if (!contentType || !contentType.includes("application/json")) {
-        const text = await response.text();
-        logger.error("Expected JSON from /api/analyze but received:", text.substring(0, 200));
         throw new Error("Ungültige Antwort vom Server erhalten.");
       }
 
       const result = await response.json();
       logger.info("AI analysis response received:", result.success ? "Success" : "Failure");
       
-      if (!response.ok || !result.success) {
-        const errorMsg = result.error?.message || result.error || "Fehler bei der Server-Kommunikation";
-        throw new Error(errorMsg);
+      if (!result.success) {
+        throw new Error(result.error?.message || result.error || "Fehler bei der internen Verarbeitung");
       }
       
       if (result.usage) {

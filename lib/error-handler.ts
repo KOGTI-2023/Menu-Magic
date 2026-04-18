@@ -124,3 +124,49 @@ export async function fetchWithTimeout(
     throw error;
   }
 }
+
+/**
+ * Parses a Response to extract a user-friendly error message based on HTTP status codes.
+ */
+export async function parseApiError(response: Response, defaultMessage: string = "Fehler bei der Server-Kommunikation"): Promise<string> {
+  const status = response.status;
+  
+  try {
+    const contentType = response.headers.get("content-type");
+    if (contentType && contentType.includes("application/json")) {
+      const cloned = response.clone();
+      const data = await cloned.json();
+      if (data.error && typeof data.error === 'object' && data.error.message) {
+        return data.error.message;
+      }
+      if (data.message) {
+        return data.message;
+      }
+    }
+  } catch (e) {
+    // Ignore JSON parsing errors
+  }
+
+  // Fallbacks based on status code
+  switch (status) {
+    case 400:
+      return "Ungültige Anfrage. Bitte überprüfen Sie Ihre Eingaben (Fehler 400).";
+    case 401:
+    case 403:
+      return "Keine Berechtigung. Bitte überprüfen Sie den hinterlegten API-Schlüssel (Fehler 401/403).";
+    case 404:
+      return "Ressource oder Dienst nicht gefunden (Fehler 404).";
+    case 413:
+      return "Die hochgeladene Datei oder die generierten Bilder sind zu groß (Payload Too Large, Fehler 413).";
+    case 429:
+      return "Zu viele Anfragen. Bitte warten Sie einen kurzen Moment und versuchen Sie es erneut (Fehler 429).";
+    case 500:
+      return "Interner Serverfehler. Die KI oder der Server konnten die Anfrage nicht verarbeiten (Fehler 500).";
+    case 502:
+    case 503:
+    case 504:
+      return `Server-Zeitüberschreitung oder Gateway-Fehler. Der Service ist aktuell überlastet (Fehler ${status}).`;
+    default:
+      return `${defaultMessage} (Status ${status})`;
+  }
+}
