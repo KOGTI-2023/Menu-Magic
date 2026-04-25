@@ -3,6 +3,8 @@ import { logger } from '@/lib/logger';
 import { withErrorHandler } from '@/lib/withErrorHandler';
 import { AppError } from '@/lib/errors';
 
+export const maxDuration = 60; // Allow sufficient time for upload and basic validation
+
 // POST /api/upload
 // Handles file upload, runs server-side validations, and returns structured warnings.
 export const POST = withErrorHandler(async function POST(req: Request) {

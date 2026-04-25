@@ -23,12 +23,15 @@ export async function safeFetch<T = any>(
     // Parse JSON safely
     let data;
     const contentType = response.headers.get('content-type');
+    
     if (contentType && contentType.includes('application/json')) {
       try {
         data = await response.json();
-      } catch (e) {
-        // failed to parse
+      } catch (e: any) {
+        throw new AppError(`Fehler beim Verarbeiten der Serverantwort: ${e.message}`, 'PARSE_ERROR', response.status, true);
       }
+    } else if (response.ok) {
+      throw new AppError(`Unerwartetes Format: ${contentType || 'None'}. Status: ${response.status}`, 'UNEXPECTED_FORMAT', response.status, true);
     }
 
     if (!response.ok) {
@@ -36,7 +39,7 @@ export async function safeFetch<T = any>(
       const errorMessage = data?.error?.message 
         || data?.message 
         || data?.error 
-        || `HTTP Fehler ${response.status}`;
+        || `HTTP Fehler ${response.status} (${response.statusText}). Content-Type war: ${contentType}`;
       
       const errorCode = data?.error?.code || 'API_ERROR';
       

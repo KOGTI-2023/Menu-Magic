@@ -294,9 +294,13 @@ export default function Home() {
           timeout: 60000
         });
 
-        if (!result.success) {
-          const errorMsg = result.error?.message || result.error || 'Fehler bei der Analyse';
-          throw new Error(errorMsg);
+        if (!result || typeof result.success === 'undefined' || !result.success) {
+          const errorMsg = result?.error?.message || result?.error || 'Fehler bei der Analyse: unerwartetes Antwortformat.';
+          logger.warn("Upload response parsed but indicated failure:", result);
+          setError(errorMsg);
+          addNotification("Upload fehlgeschlagen", "error");
+          setIsProcessing(false);
+          return;
         }
 
         const { warnings: uploadWarnings, thumbnails: uploadThumbnails } = result.data;
@@ -305,7 +309,7 @@ export default function Home() {
         setModalConfig({ model, detailLevel, style: theme });
         setIsConfirmModalOpen(true);
       } catch (err: any) {
-        logger.error("Upload/Analysis failed:", err);
+        logger.warn("Upload/Analysis failed:", err);
         setError(err.message || "Ein unerwarteter Fehler ist beim Hochladen aufgetreten.");
         addNotification("Upload fehlgeschlagen", "error");
       } finally {
@@ -367,14 +371,19 @@ export default function Home() {
         logger.info("Optimization API response received:", result);
 
         if (!result.success) {
-          throw new Error(result.error?.message || result.error || 'Fehler bei der Optimierung');
+          logger.warn("Optimization start response indicated failure:", result);
+          setError(result.error?.message || result.error || 'Fehler bei der Optimierung');
+          setIsProcessing(false);
+          setStep("UPLOAD");
+          addNotification("Optimierung konnte nicht gestartet werden", "error");
+          return;
         }
 
         // Proceed to actual processing
         logger.info("Proceeding to PDF-to-Image conversion...");
         await handleOptimize(true); 
       } catch (err: any) {
-        logger.error("Optimization start failed:", err);
+        logger.warn("Optimization start failed:", err);
         setError(err.message || "Fehler beim Starten der Optimierung.");
         setIsProcessing(false);
         setStep("UPLOAD");
@@ -429,7 +438,12 @@ export default function Home() {
       logger.info("AI analysis response received:", result.success ? "Success" : "Failure");
       
       if (!result.success) {
-        throw new Error(result.error?.message || result.error || "Fehler bei der internen Verarbeitung");
+        logger.warn("Optimization start response indicated failure:", result);
+        setError(result.error?.message || result.error || "Fehler bei der internen Verarbeitung");
+        setIsProcessing(false);
+        setStep("UPLOAD");
+        addNotification("PDF-Verarbeitung fehlgeschlagen", "error");
+        return;
       }
       
       if (result.usage) {
@@ -447,7 +461,12 @@ export default function Home() {
       setStatus("Generating preview...");
 
       if (!data) {
-        throw new Error("Keine Daten von der Gemini API erhalten.");
+        logger.warn("No data from API");
+        setError("Keine Daten von der internen API erhalten.");
+        setIsProcessing(false);
+        setStep("UPLOAD");
+        addNotification("PDF-Verarbeitung fehlgeschlagen", "error");
+        return;
       }
       
       if (!data.categories || !Array.isArray(data.categories)) {
@@ -465,7 +484,7 @@ export default function Home() {
       setStep("RESULT");
       addNotification("Speisekarte erfolgreich verarbeitet!", "success");
     } catch (err: any) {
-      logger.error("AI Analysis failed:", err);
+      logger.warn("AI Analysis failed:", err);
       setError(err.message || "Ein Fehler ist während der KI-Analyse aufgetreten.");
       setStep("UPLOAD");
       addNotification("KI-Analyse fehlgeschlagen", "error");
@@ -509,7 +528,7 @@ export default function Home() {
         handleProcess(optimized);
       }
     } catch (err: any) {
-      logger.error("Optimization failed:", err);
+      logger.warn("Optimization failed:", err);
       setError(`Optimierung fehlgeschlagen: ${err.message}`);
       setStep("UPLOAD");
       addNotification("PDF-Verarbeitung fehlgeschlagen", "error");
@@ -539,7 +558,9 @@ export default function Home() {
     try {
       const element = document.getElementById("menu-preview-container");
       if (!element) {
-        throw new Error("Vorschau-Container nicht gefunden.");
+        logger.warn("Vorschau-Container nicht gefunden.");
+        addNotification("Interner Fehler: PDF-Bereich fehlt.", "error");
+        return;
       }
       
       setStatus("PDF wird generiert...");
