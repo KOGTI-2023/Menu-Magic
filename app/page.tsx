@@ -35,7 +35,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { convertPdfToImages, OptimizationOptions } from "@/lib/pdf-utils";
 import { logger } from "@/lib/logger";
-import { fetchWithTimeout, parseApiError } from "@/lib/error-handler";
+import { safeFetch } from "@/lib/apiClient";
 import { extractMenuData, MenuData } from "@/lib/gemini";
 import { MenuPreview, MenuTheme } from "@/components/menu-preview";
 import { CostTracker, TokenUsage } from "@/components/cost-tracker";
@@ -191,7 +191,7 @@ export default function Home() {
     setIsAiProcessing(true);
     setError(null);
     try {
-      const response = await fetchWithTimeout('/api/assistant', {
+      const result = await safeFetch('/api/assistant', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -202,12 +202,6 @@ export default function Home() {
         timeout: 60000
       });
 
-      if (!response.ok) {
-        throw new Error(await parseApiError(response, "Fehler bei der Kommunikation mit dem KI-Assistenten"));
-      }
-
-      const result = await response.json();
-      
       if (!result.success) {
         throw new Error(result.error?.message || "Fehler bei der Server-Verarbeitung");
       }
@@ -243,7 +237,7 @@ export default function Home() {
     setIsAiProcessing(true);
     setError(null);
     try {
-      const response = await fetchWithTimeout('/api/assistant', {
+      const result = await safeFetch('/api/assistant', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -253,12 +247,6 @@ export default function Home() {
         timeout: 60000
       });
 
-      if (!response.ok) {
-        throw new Error(await parseApiError(response, "Fehler beim Premium-Upgrade der Texte"));
-      }
-
-      const result = await response.json();
-      
       if (!result.success) {
         throw new Error(result.error?.message || "Fehler bei der Server-Verarbeitung");
       }
@@ -300,26 +288,13 @@ export default function Home() {
         const formData = new FormData();
         formData.append('file', selectedFile);
 
-        const res = await fetchWithTimeout('/api/upload', {
+        const result = await safeFetch('/api/upload', {
           method: 'POST',
           body: formData,
           timeout: 60000
         });
 
-        if (!res.ok) {
-          throw new Error(await parseApiError(res, "Fehler beim Hochladen der Datei."));
-        }
-
-        const contentType = res.headers.get("content-type");
-        if (!contentType || !contentType.includes("application/json")) {
-          const text = await res.text();
-          logger.error("Expected JSON but received:", text.substring(0, 200));
-          throw new Error("Ungültige Antwort vom Server erhalten.");
-        }
-
-        const result = await res.json();
-
-        if (!res.ok || !result.success) {
+        if (!result.success) {
           const errorMsg = result.error?.message || result.error || 'Fehler bei der Analyse';
           throw new Error(errorMsg);
         }
@@ -378,7 +353,7 @@ export default function Home() {
       setProgress(10);
       logger.info("Starting optimization API call...");
       try {
-        const res = await fetchWithTimeout('/api/optimize', {
+        const result = await safeFetch('/api/optimize', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -389,18 +364,6 @@ export default function Home() {
           timeout: 20000 // 20s timeout for optimization start
         });
 
-        if (!res.ok) {
-          throw new Error(await parseApiError(res, "Fehler beim Starten der Optimierung."));
-        }
-
-        const contentType = res.headers.get("content-type");
-        if (!contentType || !contentType.includes("application/json")) {
-          const text = await res.text();
-          logger.error("Expected JSON from /api/optimize but received:", text.substring(0, 200));
-          throw new Error("Ungültige Antwort vom Server erhalten.");
-        }
-
-        const result = await res.json();
         logger.info("Optimization API response received:", result);
 
         if (!result.success) {
@@ -451,7 +414,7 @@ export default function Home() {
       setStatus("Analyzing structure with AI...");
       logger.info("Sending request to /api/analyze...");
       
-      const response = await fetchWithTimeout('/api/analyze', {
+      const result = await safeFetch('/api/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -463,16 +426,6 @@ export default function Home() {
         timeout: 180000 // 3 minute timeout for Gemini analysis
       });
 
-      if (!response.ok) {
-        throw new Error(await parseApiError(response, "Die KI-Analyse konnte nicht abgeschlossen werden."));
-      }
-
-      const contentType = response.headers.get("content-type");
-      if (!contentType || !contentType.includes("application/json")) {
-        throw new Error("Ungültige Antwort vom Server erhalten.");
-      }
-
-      const result = await response.json();
       logger.info("AI analysis response received:", result.success ? "Success" : "Failure");
       
       if (!result.success) {

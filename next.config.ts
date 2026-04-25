@@ -1,4 +1,3 @@
-import { withSentryConfig } from '@sentry/nextjs';
 import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
@@ -40,15 +39,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default withSentryConfig(nextConfig, {
-  org: "menu-magic",
-  project: "menu-magic",
-  sentryUrl: "https://sentry.io/",
-  silent: !process.env.CI,
-  widenClientFileUpload: true,
-  reactComponentAnnotation: { enabled: true },
-  tunnelRoute: "/monitoring",
-  hideSourceMaps: true,
-  disableLogger: true,
-  automaticVercelMonitors: true,
-});
+export default nextConfig;

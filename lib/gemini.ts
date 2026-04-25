@@ -1,5 +1,5 @@
 import { GoogleGenAI, Type, GenerateContentResponse } from "@google/genai";
-import { withRetry } from "./error-handler";
+import { withRetry } from "./retry";
 import { logger } from "./logger";
 
 export interface MenuPrice {
