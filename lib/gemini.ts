@@ -283,34 +283,7 @@ export async function extractMenuData(
     );
   } catch (error: any) {
     logger.error("Final extraction failure:", error);
-    
-    // Fallback: Basic data structure if everything fails
-    return {
-      data: {
-        restaurantName: "Speisekarte (Wiederhergestellt)",
-        processingDecision: 'Recreate',
-        originalStyle: {
-          fontFamily: 'sans-serif',
-          primaryColor: '#000000',
-          backgroundColor: '#ffffff',
-          textColor: '#333333',
-          accentColor: '#666666'
-        },
-        categories: [
-          {
-            category: "Fehler bei der Analyse",
-            items: [
-              {
-                name: "Analyse fehlgeschlagen",
-                description: "Die KI konnte die Daten nicht extrahieren. Bitte versuche es mit einem schärferen Bild erneut.",
-                prices: [{ value: "0,00 €" }]
-              }
-            ]
-          }
-        ]
-      },
-      usage: null
-    };
+    throw error;
   }
 }
 

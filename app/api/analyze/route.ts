@@ -20,7 +20,6 @@ function mergeMenuData(target: MenuData, source: MenuData) {
   }
 
   for (const sourceCat of source.categories) {
-    if (sourceCat.category === "Fehler bei der Analyse") continue;
     const existingCat = target.categories.find(c => c.category === sourceCat.category);
     if (existingCat) {
       existingCat.items.push(...sourceCat.items);
