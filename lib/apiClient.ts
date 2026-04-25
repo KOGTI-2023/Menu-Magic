@@ -30,8 +30,25 @@ export async function safeFetch<T = any>(
       } catch (e: any) {
         throw new AppError(`Fehler beim Verarbeiten der Serverantwort: ${e.message}`, 'PARSE_ERROR', response.status, true);
       }
-    } else if (response.ok) {
-      throw new AppError(`Unerwartetes Format: ${contentType || 'None'}. Status: ${response.status}`, 'UNEXPECTED_FORMAT', response.status, true);
+    } else {
+      const text = await response.text().catch(() => 'No text');
+      console.warn(`Unexpected non-JSON response from ${url}:`, text.substring(0, 500));
+      
+      if (response.ok) {
+        // AI Studio Dev Environment proxy sometimes returns HTML loading screens with 200 OK
+        if (text.includes("wait") || text.includes("starting") || text.includes("<html")) {
+          throw new AppError("Der Server startet gerade neu oder ist ausgelastet. Bitte warten Sie einen Moment und versuchen Sie es erneut.", "SERVER_BUSY", 503, true);
+        }
+        
+        // Just try parsing as JSON anyway in case the header was missing/mutated
+        try {
+          data = JSON.parse(text);
+        } catch (e: any) {
+          throw new AppError(`Unerwartetes Format: ${contentType || 'None'}. Snippet: ${text.substring(0, 100)}`, 'UNEXPECTED_FORMAT', response.status, true);
+        }
+      } else {
+        throw new AppError(text.substring(0, 200) || 'Serverfehler ohne Fehlermeldung', 'SERVER_ERROR', response.status, true);
+      }
     }
 
     if (!response.ok) {
