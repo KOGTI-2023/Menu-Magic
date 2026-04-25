@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import * as Sentry from '@sentry/nextjs';
 import { AlertTriangle, RefreshCw, Home } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { logger } from '@/lib/logger';
@@ -14,6 +15,7 @@ export default function Error({
 }) {
   useEffect(() => {
     // Log the error to an error reporting service
+    Sentry.captureException(error);
     logger.error('Global Error Boundary caught an error:', error);
     console.error('Error context:', error);
   }, [error]);

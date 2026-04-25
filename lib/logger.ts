@@ -1,4 +1,5 @@
 type LogLevel = 'debug' | 'info' | 'warn' | 'error' | 'none';
+import * as Sentry from '@sentry/nextjs';
 
 // In production, default to 'warn' to save resources. In development, default to 'debug'.
 // Can be overridden via environment variable NEXT_PUBLIC_LOG_LEVEL
@@ -36,6 +37,15 @@ export const logger = {
   error: (message: string, ...args: any[]) => {
     if (levels[currentLevel] <= levels.error) {
       console.error(`[ERROR] ${message}`, ...args);
+      // Optional: Forward all errors to Sentry automatically
+      if (process.env.NEXT_PUBLIC_SENTRY_DSN) {
+        Sentry.withScope((scope) => {
+          if (args.length > 0) {
+            scope.setExtra("context", args);
+          }
+          Sentry.captureMessage(message, "error");
+        });
+      }
     }
   }
 };
